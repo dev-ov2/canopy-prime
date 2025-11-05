@@ -1,6 +1,8 @@
-import { app, BrowserWindow } from 'electron'
 import { electronApp, optimizer } from '@electron-toolkit/utils'
+import { app, BrowserWindow } from 'electron'
 import { createAppWindow } from './app'
+import { detectGames } from './game-detection/steam'
+import { monitorGames } from './process'
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
@@ -11,6 +13,23 @@ app.whenReady().then(() => {
   // Create app window
   createAppWindow()
 
+  // Enable process monitoring
+  monitorGames((game) => {
+    console.log('Detected game process:', game)
+    // TODO pass this off to Canopy core for further handling
+  })
+
+  detectGames()
+    .then((games) => {
+      for (const [gameId, gameInfo] of Object.entries(games)) {
+        const { installPath, name } = gameInfo
+        console.log(`Detected Steam game - AppID: ${gameId}, Name: ${name}, Install Path: ${installPath}`)
+        // TODO do something with the detected games, like save them to a local database
+      }
+    })
+    .catch((error) => {
+      console.error('Failed to detect games:', error)
+    })
   // Default open or close DevTools by F12 in development
   // and ignore CommandOrControl + R in production.
   // see https://github.com/alex8088/electron-toolkit/tree/master/packages/utils
