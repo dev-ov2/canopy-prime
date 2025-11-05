@@ -43,15 +43,8 @@ Build the application for your platform:
 ```bash
 # For Windows
 npm run build:win
-
-# For macOS
-npm run build:mac
-
-# For Linux
-npm run build:linux
-
-# Unpacked for all platforms
-npm run build:unpack
 ```
+
+Linux and MacOS will be supported at a later date.
 
 Distribution files will be located in the `dist` directory.
