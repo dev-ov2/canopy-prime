@@ -4,6 +4,8 @@ import path from 'path'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import * as vdf from 'vdf'
+import { GameRepository } from '../db'
+import { Source } from './shared'
 
 const execFileAsync = promisify(execFile)
 
@@ -19,6 +21,7 @@ export async function findSteamExecutable(): Promise<string | null> {
     const path = stdout.trim()
     return path.length > 0 ? path : null
   } catch (error) {
+    console.error('Error finding Steam executable:', error)
     return null
   }
 }
@@ -52,6 +55,7 @@ export async function getSteamLibraries(): Promise<string[]> {
         }
         return libs
       } catch (error) {
+        console.error('Error reading libraryfolders.vdf:', error)
         return []
       }
     }
@@ -65,7 +69,7 @@ interface GameInfo {
   name: string
 }
 
-export async function detectGames(): Promise<Record<number, GameInfo>> {
+export async function detectGames(gameRepository: GameRepository): Promise<Record<number, GameInfo>> {
   const libraries = await getSteamLibraries()
   const games: Record<number, GameInfo> = {}
 
@@ -86,9 +90,16 @@ export async function detectGames(): Promise<Record<number, GameInfo>> {
                 installPath: path.join('steamapps', 'common', installDir),
                 name: (appState?.name ?? appState?.Name ?? '').trim(),
               }
+              gameRepository.upsert({
+                appId: gameId,
+                path: path.join('steamapps', 'common', installDir).toLowerCase(),
+                name: (appState?.name ?? appState?.Name ?? '').trim(),
+                source: Source.Steam,
+                executable: null, // we do not have the executable yet. We will fill this in later.
+              })
             }
-          } catch {
-            console.error('Failed to read manifest:', manifestPath)
+          } catch (error) {
+            console.error('Failed to read manifest:', manifestPath, error)
           }
         }
       }

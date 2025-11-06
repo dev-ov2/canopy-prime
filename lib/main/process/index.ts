@@ -1,8 +1,11 @@
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { getImagePathViaFFI } from './ffi'
+import { GameRepository } from '../db'
+import { indexOfNth } from '@/lib/utils'
+import { Source } from '../game-detection/shared'
 
-export const IGNORED_PROCESSES = new Set<string>([
+const IGNORED_PROCESSES = new Set<string>([
   'epicwebhelper.exe',
   'epicgameslauncher.exe',
   'steam.exe',
@@ -15,7 +18,7 @@ export const IGNORED_PROCESSES = new Set<string>([
   'bootstrappackagedgame',
 ])
 
-export type ProcessListener = (proc: ProcessSnapshot) => void
+type ProcessListener = (proc: ProcessSnapshot) => void
 
 const execFileAsync = promisify(execFile)
 
@@ -52,106 +55,169 @@ type ProcessSnapshot = {
   }
 }
 
-export function getProcessSnapshot(p: RawProc): ProcessSnapshot {
-  const pid = p.ProcessId
-  const name = (p.Name || '').toLowerCase()
-  const path = (p.ExecutablePath ? p.ExecutablePath : getImagePathViaFFI(pid) || '').toLowerCase()
-  const cmd = (p.CommandLine || '').toLowerCase()
-  const sessionId = p.SessionId
-  const fileDescription = (p.FileDescription || '').toLowerCase()
-
-  if (sessionId == 0 || IGNORED_PROCESSES.has(name) || IGNORED_PROCESSES.has(fileDescription)) {
-    return {
-      pid,
-      name,
-      cmd,
-      path,
-      sessionId,
-      fileDescription,
-      likelyGame: false,
-      score: 0,
-      reasons: ['process is in ignored list'],
-    }
-  }
-
-  let score = 0
-  const reasons: string[] = []
-
-  const PATH_WEIGHT = 30
-  const PARENT_WEIGHT = 40
-  const ENGINE_WEIGHT = 30
-
-  const launcherPathPatterns: RegExp[] = [
-    /\\steamapps\\|\\steam\\|steamapps/i,
-    /\\epic games\\|epic\s*games/i,
-    /\\gog games\\|gog\s*games/i,
-    /\\origin\\|\\ea games/i,
-    /\\ubisoft\\|uplay/i,
-    /\\battle.net\\|blizzard/i,
-  ]
-
-  const curiousPathPatterns: RegExp[] = [
-    /\\xboxapps\\|windowsapps/i,
-    /\\program files \(x86\)\\.*\\games/i,
-    /\\games\b/i,
-  ]
-  if (path && launcherPathPatterns.some((r) => r.test(path))) {
-    score += PATH_WEIGHT + PARENT_WEIGHT
-    reasons.push('path matches known game/store folders')
-    reasons.push('likely launched via game store client')
-  } else if (path && curiousPathPatterns.some((r) => r.test(path))) {
-    score += PATH_WEIGHT
-    reasons.push('path matches common game-related folders')
-  }
-
-  const likelyLauncherNames = [
-    /^steam(?:\.exe)?$/,
-    /epicgameslauncher(?:\.exe)?$/,
-    /origin(?:\.exe)?$/,
-    /battle\.net(?:\.exe)?$/,
-    /uplay(?:\.exe)?$/,
-    /gog(?:\.exe)?$/,
-  ]
-
-  if (name && likelyLauncherNames.some((rx) => rx.test(name))) {
-    score += PARENT_WEIGHT
-    reasons.push('executable is a known game launcher/launcher-like process')
-  } else if (cmd && likelyLauncherNames.some((rx) => rx.test(cmd))) {
-    score += Math.floor(PARENT_WEIGHT / 2)
-    reasons.push('command line contains known launcher name')
-  }
-
-  const engineIndicators = [
-    /steam_api/i,
-    /steamclient/i,
-    /unityplayer/i,
-    /ue4/i,
-    /ue5/i,
-    /unreal/i,
-    /cryengine/i,
-    /dxgi\.dll/i,
-    /d3d9\.dll/i,
-    /d3d11/i,
-    /vulkan/i,
-  ]
-  if (engineIndicators.some((rx) => rx.test(path) || rx.test(cmd) || rx.test(name))) {
-    score += ENGINE_WEIGHT
-    reasons.push('found engine / game API indicators (Unity/Unreal/Steam/etc)')
-  }
-
-  if (/\b(game|client|launcher|server)\b/i.test(name)) {
-    score += 10
-    reasons.push('filename contains common game-related token')
-  }
-
-  score = Math.max(0, Math.min(100, score))
-
-  const likelyGame = score >= 50
-
-  return { pid, name, cmd, path, sessionId, fileDescription, likelyGame, score, reasons }
+function getSource(path: string): Source {
+  const lowerPath = path.toLowerCase()
+  if (lowerPath.includes('\\steamapps\\common\\')) return Source.Steam
+  return Source.Unknown
 }
 
-async function getDetectedGame(): Promise<ProcessSnapshot | null> {
+function getProcessSnapshot(gameRepository: GameRepository): (p: RawProc) => ProcessSnapshot {
+  return (p: RawProc): ProcessSnapshot => {
+    const pid = p.ProcessId
+    const name = (p.Name || '').toLowerCase()
+    const path = (p.ExecutablePath ? p.ExecutablePath : getImagePathViaFFI(pid) || '').toLowerCase()
+    const cmd = (p.CommandLine || '').toLowerCase()
+    const sessionId = p.SessionId
+    const fileDescription = (p.FileDescription || '').toLowerCase()
+
+    const source = path ? getSource(path) : Source.Unknown
+
+    if (sessionId == 0 || IGNORED_PROCESSES.has(name) || IGNORED_PROCESSES.has(fileDescription)) {
+      return {
+        pid,
+        name,
+        cmd,
+        path,
+        sessionId,
+        fileDescription,
+        likelyGame: false,
+        score: 0,
+        reasons: ['process is in ignored list'],
+      }
+    }
+
+    switch (source) {
+      case Source.Steam: {
+        // Search the DB for a matching Steam game by executable
+        const gameRecord = gameRepository.getByExecutable(name)
+        if (gameRecord) {
+          return {
+            pid,
+            name,
+            cmd,
+            path,
+            sessionId,
+            fileDescription,
+            likelyGame: true,
+            score: 100,
+            reasons: ['matched Steam game in database by executable'],
+            meta: {
+              ...gameRecord,
+            },
+          }
+        } else {
+          // Search the DB for a matching Steam game by path
+          const splitPath = path.split('steamapps')[1]
+          const searchPath = `steamapps${splitPath.slice(0, indexOfNth(splitPath, '\\', 3))}`
+          const gameRecordByPath = gameRepository.getByPath(searchPath)
+
+          if (gameRecordByPath) {
+            // update the record to include the executable
+            gameRepository.upsert({ ...gameRecordByPath, executable: name })
+            return {
+              pid,
+              name,
+              cmd,
+              path,
+              sessionId,
+              fileDescription,
+              likelyGame: true,
+              score: 100,
+              reasons: ['matched Steam game in database by path'],
+              meta: {
+                ...gameRecordByPath,
+              },
+            }
+          }
+        }
+
+        break
+      }
+      case Source.EpicGames: // TODO implement Epic Games detection
+        break
+      default:
+        break
+    }
+
+    let score = 0
+    const reasons: string[] = []
+
+    const PATH_WEIGHT = 30
+    const PARENT_WEIGHT = 40
+    const ENGINE_WEIGHT = 30
+
+    const launcherPathPatterns: RegExp[] = [
+      /\\steamapps\\|\\steam\\|steamapps/i,
+      /\\epic games\\|epic\s*games/i,
+      /\\gog games\\|gog\s*games/i,
+      /\\origin\\|\\ea games/i,
+      /\\ubisoft\\|uplay/i,
+      /\\battle.net\\|blizzard/i,
+    ]
+
+    const curiousPathPatterns: RegExp[] = [
+      /\\xboxapps\\|windowsapps/i,
+      /\\program files \(x86\)\\.*\\games/i,
+      /\\games\b/i,
+    ]
+    if (path && launcherPathPatterns.some((r) => r.test(path))) {
+      score += PATH_WEIGHT + PARENT_WEIGHT
+      reasons.push('path matches known game/store folders')
+      reasons.push('likely launched via game store client')
+    } else if (path && curiousPathPatterns.some((r) => r.test(path))) {
+      score += PATH_WEIGHT
+      reasons.push('path matches common game-related folders')
+    }
+
+    const likelyLauncherNames = [
+      /^steam(?:\.exe)?$/,
+      /epicgameslauncher(?:\.exe)?$/,
+      /origin(?:\.exe)?$/,
+      /battle\.net(?:\.exe)?$/,
+      /uplay(?:\.exe)?$/,
+      /gog(?:\.exe)?$/,
+    ]
+
+    if (name && likelyLauncherNames.some((rx) => rx.test(name))) {
+      score += PARENT_WEIGHT
+      reasons.push('executable is a known game launcher/launcher-like process')
+    } else if (cmd && likelyLauncherNames.some((rx) => rx.test(cmd))) {
+      score += Math.floor(PARENT_WEIGHT / 2)
+      reasons.push('command line contains known launcher name')
+    }
+
+    const engineIndicators = [
+      /steam_api/i,
+      /steamclient/i,
+      /unityplayer/i,
+      /ue4/i,
+      /ue5/i,
+      /unreal/i,
+      /cryengine/i,
+      /dxgi\.dll/i,
+      /d3d9\.dll/i,
+      /d3d11/i,
+      /vulkan/i,
+    ]
+    if (engineIndicators.some((rx) => rx.test(path) || rx.test(cmd) || rx.test(name))) {
+      score += ENGINE_WEIGHT
+      reasons.push('found engine / game API indicators (Unity/Unreal/Steam/etc)')
+    }
+
+    if (/\b(game|client|launcher|server)\b/i.test(name)) {
+      score += 10
+      reasons.push('filename contains common game-related token')
+    }
+
+    score = Math.max(0, Math.min(100, score))
+
+    const likelyGame = score >= 50
+
+    return { pid, name, cmd, path, sessionId, fileDescription, likelyGame, score, reasons }
+  }
+}
+
+async function getDetectedGame(gameRepository: GameRepository): Promise<ProcessSnapshot | null> {
   const { stdout } = await execFileAsync('powershell.exe', ['-NoProfile', '-Command', command], {
     windowsHide: true,
     maxBuffer: 10 * 1024 * 1024,
@@ -165,19 +231,19 @@ async function getDetectedGame(): Promise<ProcessSnapshot | null> {
 
   const foundProc = items
     .sort((a, b) => (a.ProcessId < b.ProcessId ? -1 : 1))
-    .map(getProcessSnapshot)
+    .map(getProcessSnapshot(gameRepository))
     .filter((p) => p.likelyGame)
 
   return foundProc ? foundProc[0] : null
 }
 
-export function monitorGames(onGameDetected: ProcessListener, intervalMs = 15000): () => void {
+function monitor(gameRepository: GameRepository, onGameDetected: ProcessListener, intervalMs = 15000): () => void {
   let trackedGame: ProcessSnapshot | null = null
   let timer: NodeJS.Timeout | undefined
 
   const poll = async () => {
     try {
-      const game = await getDetectedGame()
+      const game = await getDetectedGame(gameRepository)
 
       if (game && game?.pid !== trackedGame?.pid) {
         trackedGame = game
@@ -195,4 +261,8 @@ export function monitorGames(onGameDetected: ProcessListener, intervalMs = 15000
     if (timer) clearInterval(timer)
     timer = undefined
   }
+}
+
+export default {
+  monitor,
 }
