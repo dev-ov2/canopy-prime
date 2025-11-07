@@ -1,9 +1,9 @@
 import { electronApp, optimizer } from '@electron-toolkit/utils'
 import { app, BrowserWindow } from 'electron'
 import { createAppWindow } from './app'
+import { GameRepository } from './db'
 import { Steam } from './game-detection'
 import Process from './process'
-import { GameRepository } from './db'
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
@@ -12,14 +12,13 @@ app.whenReady().then(() => {
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron')
   // Create app window
-  createAppWindow()
+  const window = createAppWindow()
 
   const gameRepository = new GameRepository('games.db')
 
   // Enable process monitoring
   Process.monitor(gameRepository, (game) => {
-    console.log('Detected game process:', game)
-    // TODO pass this off to Canopy core for further handling
+    window.setActiveProcess(game)
   })
 
   Steam.detect(gameRepository) // TODO add button to trigger manual scan

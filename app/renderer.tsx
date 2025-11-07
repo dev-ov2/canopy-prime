@@ -8,7 +8,7 @@ import App from './app'
 ReactDOM.createRoot(document.getElementById('app') as HTMLElement).render(
   <React.StrictMode>
     <ErrorBoundary>
-      <WindowContextProvider titlebar={{ title: 'Electron React App', icon: appIcon, menuItems }}>
+      <WindowContextProvider titlebar={{ title: 'Canopy', icon: appIcon, menuItems, titleCentered: true }}>
         <App />
       </WindowContextProvider>
     </ErrorBoundary>

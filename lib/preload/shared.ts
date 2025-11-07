@@ -13,4 +13,10 @@ export abstract class ConveyorApi {
     // Validation happens on the main process side
     return this.renderer.invoke(channel, ...args) as Promise<ChannelReturn<T>>
   }
+
+  send = <T extends ChannelName>(channel: T, handler: (payload: { id: string }) => void): (() => void) => {
+    const listener = (_e, data) => handler(data)
+    const off = this.renderer.on(channel, listener)
+    return off
+  }
 }

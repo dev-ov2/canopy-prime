@@ -18,7 +18,7 @@ const IGNORED_PROCESSES = new Set<string>([
   'bootstrappackagedgame',
 ])
 
-type ProcessListener = (proc: ProcessSnapshot) => void
+type ProcessListener = (proc: ProcessSnapshot | null) => void
 
 const execFileAsync = promisify(execFile)
 
@@ -40,7 +40,7 @@ type RawProc = {
   FileDescription?: string
 }
 
-type ProcessSnapshot = {
+export type ProcessSnapshot = {
   pid: number
   name?: string
   cmd?: string
@@ -248,6 +248,9 @@ function monitor(gameRepository: GameRepository, onGameDetected: ProcessListener
       if (game && game?.pid !== trackedGame?.pid) {
         trackedGame = game
         onGameDetected(game)
+      } else if (!game) {
+        trackedGame = null
+        onGameDetected(null)
       }
     } catch (error) {
       console.error('Failed to read process list', error)
