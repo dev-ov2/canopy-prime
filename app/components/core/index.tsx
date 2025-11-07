@@ -3,6 +3,7 @@ import { useCoreUrl } from './hooks'
 import useInitialize from './hooks/useInitialize'
 import useIntervalComplete from './hooks/useIntervalComplete'
 import { CORE_URL, PRIME_UID } from './utils'
+import { IntervalResponse } from '@/lib/types'
 
 interface ScreenSize {
   width: number
@@ -55,17 +56,20 @@ export function DesktopFrame({
   const src = useCoreUrl(screen, gameId, gameTitle, '', { hasUpdate })
   const iframeRef = useRef<HTMLIFrameElement | null>(null)
 
-  const dispatchIntervalComplete = useCallback(() => {
-    if (iframeRef.current?.contentWindow) {
-      iframeRef.current.contentWindow.postMessage(
-        {
-          type: 'FROM_CORE',
-          data: { action: 'INTERVAL_COMPLETE' },
-        },
-        CORE_URL
-      )
-    }
-  }, [iframeRef])
+  const dispatchIntervalComplete = useCallback(
+    (props: IntervalResponse) => {
+      if (iframeRef.current?.contentWindow) {
+        iframeRef.current.contentWindow.postMessage(
+          {
+            type: 'FROM_CORE',
+            data: { action: 'INTERVAL_COMPLETE', data: { data: props } },
+          },
+          CORE_URL
+        )
+      }
+    },
+    [iframeRef]
+  )
 
   useInitialize('ACK', iframeRef, gameId, 'desktop')
 

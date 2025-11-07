@@ -7,6 +7,10 @@ export const appIpcSchema = {
   },
   'interval-complete': {
     args: z.tuple([]),
+    handlerArgs: z.object({
+      appId: z.string(),
+      source: z.string(),
+    }),
     return: z.void(),
   },
 }

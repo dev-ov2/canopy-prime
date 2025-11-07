@@ -60,7 +60,10 @@ export function createAppWindow(): AppWindow {
 
   const onIntervalComplete = () => {
     if (mainWindow && activeProcess) {
-      mainWindow.webContents.send('interval-complete')
+      mainWindow.webContents.send('interval-complete', {
+        appId: activeProcess.meta?.appId,
+        source: activeProcess.meta?.source,
+      })
     } else if (!activeProcess) {
       count = null
     }
