@@ -11,7 +11,7 @@ const SVG_PATHS = {
 } as const
 
 export const Titlebar = () => {
-  const { title, icon, titleCentered, menuItems } = useWindowContext().titlebar
+  const { menuItems } = useWindowContext().titlebar
   const { menusVisible, setMenusVisible, closeActiveMenu } = useTitlebarContext()
   const { window: wcontext } = useWindowContext()
 
@@ -29,16 +29,7 @@ export const Titlebar = () => {
 
   return (
     <div className={`window-titlebar ${wcontext?.platform ? `platform-${wcontext.platform}` : ''}`}>
-      <div
-        className={'ml-12 flex-1 h-full'}
-        style={
-          {
-            '-webkit-app-region': 'drag',
-          } as any
-        }
-      />
-
-      <div className={'w-72 self-center justify-center align-middle items-center'} />
+      <div className={'flex-2 w-72 self-center justify-center align-middle items-center'} />
 
       <div className={'flex gap-4 justify-between pr-12 flex-1 h-full'}>
         <div
