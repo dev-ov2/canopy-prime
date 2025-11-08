@@ -4,6 +4,7 @@ import { createAppWindow } from './app'
 import { GameRepository } from './db'
 import { Steam } from './game-detection'
 import Process from './process'
+import { isElectronOverwolf } from '@overwolf/electron-is-overwolf'
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
@@ -30,13 +31,19 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  app.on('activate', function () {
-    // On macOS it's common to re-create a window in the app when the
-    // dock icon is clicked and there are no other windows open.
+  if (!isElectronOverwolf) {
+    app.on('activate', function () {
+      // On macOS it's common to re-create a window in the app when the
+      // dock icon is clicked and there are no other windows open.
+      if (BrowserWindow.getAllWindows().length === 0) {
+        createAppWindow()
+      }
+    })
+  } else {
     if (BrowserWindow.getAllWindows().length === 0) {
       createAppWindow()
     }
-  })
+  }
 })
 
 // Quit when all windows are closed, except on macOS. There, it's common

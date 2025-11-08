@@ -2,6 +2,15 @@ import { DesktopFrame } from './components/core'
 import { Titlebar } from './components/window/Titlebar'
 import './styles/app.css'
 
+declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
+  namespace React.JSX {
+    interface IntrinsicElements {
+      owadview: React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement>
+    }
+  }
+}
+
 export default function App() {
   return (
     <div className="relative">
@@ -12,13 +21,17 @@ export default function App() {
             <div className="flex-1 border border-[#27272a] rounded">
               <DesktopFrame screen="desktop" hasUpdate={false} />
             </div>
-            <div className="flex flex-0 min-h-[60px] items-center justify-center">
-              <p>ad</p>
+            <div className="flex flex-0 h-[90px] items-center justify-center">
+              <div className="w-[728px] h-[90px] bg-transparent">
+                <owadview />
+              </div>
             </div>
           </div>
         </div>
-        <div className="mt-[var(--window-titlebar-height)] flex flex-0 min-w-[300px] items-center justify-center">
-          <p>ad</p>
+        <div className="mt-(--window-titlebar-height) flex flex-0 w-[400px] items-center justify-center">
+          <div className="w-[400px] h-[600px] bg-transparent">
+            <owadview />
+          </div>
         </div>
       </div>
     </div>

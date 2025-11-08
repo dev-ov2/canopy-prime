@@ -1,13 +1,14 @@
 {
-  "name": "era",
-  "version": "12.0.0",
-  "description": "A modern Electron application template with React, Vite, TypeScript, Shadcn UI and TailwindCSS",
-  "main": "./out/main/main.js",
+  "name": "@canopy/overwolf-electron",
+  "productName": "Canopy",
+  "version": "2.0.0",
+  "description": "Complete tasks, earn points, and plant trees while playing your favorite games!",
   "license": "MIT",
   "author": {
-    "name": "Guasam",
-    "url": "https://github.com/guasam"
+    "name": "OV2",
+    "email": "projectluca.dev@gmail.com"
   },
+  "main": "./out/main/main.js",
   "scripts": {
     "dev": "cross-env ELECTRON_DISABLE_SANDBOX=1 electron-vite dev -w",
     "format": "prettier --write .",
@@ -15,6 +16,7 @@
     "start": "electron-vite preview",
     "postinstall": "electron-builder install-app-deps",
     "vite:build:app": "electron-vite build",
+    "vite:build:app:watch": "electron-vite build --watch",
     "electron:build:win": "electron-builder --win",
     "electron:build:mac": "electron-builder --mac",
     "electron:build:linux": "electron-builder --linux",
@@ -22,14 +24,20 @@
     "build:unpack": "run-s vite:build:app electron:build:dir",
     "build:win": "run-s vite:build:app electron:build:win",
     "build:mac": "run-s vite:build:app electron:build:mac",
-    "build:linux": "run-s vite:build:app electron:build:linux"
+    "build:linux": "run-s vite:build:app electron:build:linux",
+    "ow:dev": "vite dev",
+    "ow:build:win": "run-s vite:build:app ow-electron-builder --c.extraMetadata.name=Canopy --publish=\"never\""
+  },
+  "overwolf": {
+    "packages": []
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/guasam/electron-react-app"
+    "url": "https://github.com/dev-ov2/canopy-prime"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
+      "@overwolf/ow-electron",
       "better-sqlite3",
       "electron",
       "esbuild"
@@ -38,22 +46,30 @@
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
+    "@node-steam/vdf": "^2.2.0",
+    "@overwolf/electron-is-overwolf": "0.0.2",
     "@radix-ui/react-slot": "^1.2.3",
     "@radix-ui/react-switch": "^1.2.6",
     "better-sqlite3": "^12.4.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "electron-updater": "^6.6.2",
     "koffi": "^2.14.1",
     "lucide-react": "^0.541.0",
+    "swiper": "^11.2.6",
     "tailwind-merge": "^3.3.1",
     "tw-animate-css": "^1.3.7",
     "vdf": "^0.0.2",
+    "vite-plugin-electron": "^0.29.0",
     "zod": "^4.1.3"
   },
   "devDependencies": {
     "@electron-toolkit/eslint-config-prettier": "^3.0.0",
     "@electron-toolkit/tsconfig": "^1.0.1",
     "@eslint/js": "^9.34.0",
+    "@overwolf/ow-electron": "37.7.0",
+    "@overwolf/ow-electron-builder": "26.0.12",
+    "@overwolf/ow-electron-packages-types": "1.0.2",
     "@rushstack/eslint-patch": "^1.12.0",
     "@tailwindcss/vite": "^4.1.12",
     "@types/better-sqlite3": "^7.6.13",
@@ -76,6 +92,10 @@
     "tailwindcss": "^4.1.12",
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.41.0",
-    "vite": "^7.1.3"
+    "vite": "^7.1.3",
+    "vite-plugin-electron-renderer": "^0.14.6"
+  },
+  "alias": {
+    "electron": "@overwolf/ow-electron"
   }
 }
