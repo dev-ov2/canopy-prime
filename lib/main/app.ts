@@ -4,8 +4,14 @@ import appIcon from '@/resources/build/icon.png?asset'
 import { registerResourcesProtocol } from './protocols'
 import { registerWindowHandlers } from '@/lib/conveyor/handlers/window-handler'
 import { registerAppHandlers } from '@/lib/conveyor/handlers/app-handler'
+import { ProcessSnapshot } from './process'
+import Core from './core'
 
-export function createAppWindow(): void {
+interface AppWindow {
+  setActiveProcess: (process: ProcessSnapshot | null) => void
+}
+
+export function createAppWindow(): AppWindow {
   // Register custom protocol for resources
   registerResourcesProtocol()
 
@@ -18,7 +24,7 @@ export function createAppWindow(): void {
     icon: appIcon,
     frame: false,
     titleBarStyle: 'hiddenInset',
-    title: 'Electron React App',
+    title: 'Canopy',
     maximizable: true,
     resizable: true,
     webPreferences: {
@@ -42,9 +48,42 @@ export function createAppWindow(): void {
 
   // HMR for renderer base on electron-vite cli.
   // Load the remote URL for development or the local html file for production.
-  if (!app.isPackaged && process.env['ELECTRON_RENDERER_URL']) {
-    mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
+  if (!app.isPackaged) {
+    if (process.env['ELECTRON_RENDERER_URL']) {
+      mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
+    } else if (process.env['VITE_DEV_SERVER_URL']) {
+      mainWindow.loadURL(process.env['VITE_DEV_SERVER_URL'] + 'app/index.html')
+    }
   } else {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
+  }
+
+  // Monitor active process and notify core of successful intervals
+  let activeProcess: ProcessSnapshot | null = null
+  let count: any | null = null
+
+  const onIntervalComplete = () => {
+    if (mainWindow && activeProcess) {
+      mainWindow.webContents.send('interval-complete', {
+        appId: activeProcess.meta?.appId,
+        source: activeProcess.meta?.source,
+      })
+    } else if (!activeProcess) {
+      count = null
+    }
+  }
+
+  const setActiveProcess = (process: ProcessSnapshot | null) => {
+    activeProcess = process
+    if (process && count === null) {
+      count = Core.count(onIntervalComplete)
+    } else if (!process && count !== null) {
+      count()
+      count = null
+    }
+  }
+
+  return {
+    setActiveProcess,
   }
 }

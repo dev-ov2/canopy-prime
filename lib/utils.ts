@@ -14,3 +14,30 @@ export function indexOfNth(str: string, pat: string, n: number): number {
   }
   return i
 }
+
+export interface LoggerInterface {
+  info: (...args: any[]) => void
+  warn: (...args: any[]) => void
+  error: (...args: any[]) => void
+}
+
+let internalLogger = {
+  info: (...args: any[]) => {
+    console.log(...args)
+  },
+  warn: (...args: any[]) => {
+    console.warn(...args)
+  },
+  error: (...args: any[]) => {
+    console.error(...args)
+  },
+}
+
+export const Logger: LoggerInterface & {
+  setLogger: (Logger: LoggerInterface) => void
+} = {
+  info: (...args: any[]) => internalLogger.info(...args),
+  warn: (...args: any[]) => internalLogger.warn(...args),
+  error: (...args: any[]) => internalLogger.error(...args),
+  setLogger: (newLogger: LoggerInterface) => (internalLogger = newLogger),
+}

@@ -2,16 +2,16 @@
   color-scheme: dark;
   --window-icon-height: 16px;
   --window-title-margin: 42px;
-  --window-titlebar-height: 40px;
+  --window-titlebar-height: 46px;
   --window-titlebar-font-size: 13px;
   --window-scrollbar-width: 12px;
   --window-mac-titlebar-controls-margin: 80px;
   --window-background-transition-duration: 0.3s;
   --window-c-popup-font-weight: normal;
 
-  --window-c-background: #1c1c1c;
-  --window-c-titlebar-background: #282828;
-  --window-c-titlebar-border: transparent;
+  --window-c-background: #0c0a09;
+  --window-c-titlebar-background: #0c0a09;
+  --window-c-titlebar-border: #27272a;
   --window-c-text: #ffffffc8;
   --window-c-hover: #3c3c3c;
   --window-c-popup-background: #282828;
@@ -65,20 +65,24 @@
 }
 
 /* Assign last children to use full height of window content */
-.window-content div:last-child {
+.window-content > :last-child {
   height: 100%;
 }
 
 .window-titlebar {
   display: flex;
+  align-items: center;
+  align-content: center;
+  justify-content: center;
+  justify-items: center;
   position: relative;
   height: var(--window-titlebar-height);
-  align-items: center;
-  -webkit-app-region: drag;
-  background-color: var(--window-c-titlebar-background);
+  /* -webkit-app-region: drag; */
   color: var(--window-c-text);
   transition: background-color var(--window-background-transition-duration) ease;
   border-bottom: 1px solid var(--window-c-titlebar-border);
+  z-index: 8;
+  pointer-events: none;
 }
 
 .window-titlebar-icon {
@@ -186,7 +190,7 @@
   align-items: center;
   justify-content: center;
   width: 36px;
-  height: 30px;
+  height: 40px;
   cursor: pointer;
   background-color: transparent;
 }

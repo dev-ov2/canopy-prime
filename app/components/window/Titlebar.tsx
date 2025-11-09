@@ -11,7 +11,7 @@ const SVG_PATHS = {
 } as const
 
 export const Titlebar = () => {
-  const { title, icon, titleCentered, menuItems } = useWindowContext().titlebar
+  const { menuItems } = useWindowContext().titlebar
   const { menusVisible, setMenusVisible, closeActiveMenu } = useTitlebarContext()
   const { window: wcontext } = useWindowContext()
 
@@ -29,18 +29,18 @@ export const Titlebar = () => {
 
   return (
     <div className={`window-titlebar ${wcontext?.platform ? `platform-${wcontext.platform}` : ''}`}>
-      {wcontext?.platform === 'win32' && (
-        <div className="window-titlebar-icon">
-          <img src={icon} />
-        </div>
-      )}
+      <div className={'flex-2 w-72 self-center justify-center align-middle items-center'} />
 
-      <div
-        className="window-titlebar-title"
-        {...(titleCentered && { 'data-centered': true })}
-        style={{ visibility: menusVisible ? 'hidden' : 'visible' }}
-      >
-        {title}
+      <div className={'flex gap-4 justify-between pr-12 flex-1 h-full'}>
+        <div
+          className="flex-1"
+          style={
+            {
+              '-webkit-app-region': 'drag',
+            } as any
+          }
+        />
+        <div className=" w-25" />
       </div>
       {menusVisible && <TitlebarMenu />}
       {wcontext?.platform === 'win32' && <TitlebarControls />}
@@ -52,7 +52,7 @@ const TitlebarControls = () => {
   const { window: wcontext } = useWindowContext()
 
   return (
-    <div className="window-titlebar-controls">
+    <div className="window-titlebar-controls pointer-events-auto">
       {wcontext?.minimizable && <TitlebarControlButton label="minimize" svgPath={SVG_PATHS.minimize} />}
       {wcontext?.maximizable && <TitlebarControlButton label="maximize" svgPath={SVG_PATHS.maximize} />}
       <TitlebarControlButton label="close" svgPath={SVG_PATHS.close} />

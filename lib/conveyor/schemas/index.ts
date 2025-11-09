@@ -12,12 +12,18 @@ export const ipcSchemas = {
 export type IPCChannels = {
   [K in keyof typeof ipcSchemas]: {
     args: z.infer<(typeof ipcSchemas)[K]['args']>
+    handlerArgs: (typeof ipcSchemas)[K] extends { handlerArgs: infer H }
+      ? H extends z.ZodTypeAny
+        ? z.infer<H>
+        : never
+      : never
     return: z.infer<(typeof ipcSchemas)[K]['return']>
   }
 }
 
 export type ChannelName = keyof typeof ipcSchemas
 export type ChannelArgs<T extends ChannelName> = IPCChannels[T]['args']
+export type ChannelHandlerArgs<T extends ChannelName> = IPCChannels[T]['handlerArgs']
 export type ChannelReturn<T extends ChannelName> = IPCChannels[T]['return']
 
 // Runtime validation helpers

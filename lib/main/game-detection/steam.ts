@@ -6,6 +6,7 @@ import { promisify } from 'node:util'
 import * as vdf from 'vdf'
 import { GameRepository } from '../db'
 import { Source } from './shared'
+import { parse as parseVdf } from '@node-steam/vdf'
 
 const execFileAsync = promisify(execFile)
 
@@ -40,7 +41,7 @@ export async function getSteamLibraries(): Promise<string[]> {
     if (fs.existsSync(libraryPath)) {
       try {
         const text = fs.readFileSync(libraryPath, 'utf8')
-        const parsed = vdf.parse(text)
+        const parsed = parseVdf(text)
 
         const root = parsed.LibraryFolders || parsed.libraryfolders || parsed
 
@@ -53,7 +54,7 @@ export async function getSteamLibraries(): Promise<string[]> {
             libs.push(normalizeLibraryPath(entry))
           }
         }
-        return libs
+        return []
       } catch (error) {
         console.error('Error reading libraryfolders.vdf:', error)
         return []
@@ -81,7 +82,7 @@ export async function detectGames(gameRepository: GameRepository): Promise<Recor
         if (!Number.isNaN(gameId)) {
           const manifestPath = path.join(library, 'steamapps', file)
           try {
-            const manifest = vdf.parse(fs.readFileSync(manifestPath, 'utf8'))
+            const manifest = parseVdf(fs.readFileSync(manifestPath, 'utf8'))
             const appState = manifest.AppState ?? manifest.appstate ?? manifest
             const installDir = (appState?.installdir ?? appState?.InstallDir)?.trim()
             if (installDir) {

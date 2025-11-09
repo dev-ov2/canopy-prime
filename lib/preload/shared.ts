@@ -1,5 +1,6 @@
+import type { ChannelArgs, ChannelHandlerArgs, ChannelName, ChannelReturn } from '@/lib/conveyor/schemas'
 import type { ElectronAPI, IpcRenderer } from '@electron-toolkit/preload'
-import type { ChannelName, ChannelArgs, ChannelReturn } from '@/lib/conveyor/schemas'
+import { IpcRendererEvent } from 'electron'
 
 export abstract class ConveyorApi {
   protected renderer: IpcRenderer
@@ -12,5 +13,13 @@ export abstract class ConveyorApi {
     // Call the IPC method without runtime validation in preload
     // Validation happens on the main process side
     return this.renderer.invoke(channel, ...args) as Promise<ChannelReturn<T>>
+  }
+
+  send = <T extends ChannelName>(channel: T, handler: (payload: ChannelHandlerArgs<T>) => void): (() => void) => {
+    const listener = (_e: IpcRendererEvent, data: ChannelHandlerArgs<T>) => {
+      handler(data)
+    }
+    const off = this.renderer.on(channel, listener)
+    return off
   }
 }
