@@ -15,7 +15,7 @@ export default function App() {
   return (
     <div className="relative">
       <Titlebar />
-      <div className="absolute flex top-0 bottom-0 left-0 right-0">
+      <div className="absolute flex top-0 bottom-0 left-0 right-0 overflow-clip">
         <div className="flex-2">
           <div className="flex h-full flex-col">
             <div className="flex-1 border border-[#27272a] rounded">
