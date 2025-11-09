@@ -1,0 +1,8 @@
+@import "swiper/css/pagination";
+@import "swiper/css/scrollbar";
+@import "swiper/css";
+
+.swiper {
+  width: 100%;
+  height: 100%;
+}

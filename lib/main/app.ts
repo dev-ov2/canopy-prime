@@ -1,12 +1,20 @@
-import { BrowserWindow, shell, app, nativeImage } from 'electron'
-import { join } from 'path'
-import appIcon from '@/resources/build/icon2.png?asset'
-import { registerResourcesProtocol } from './protocols'
-import { registerWindowHandlers } from '@/lib/conveyor/handlers/window-handler'
 import { registerAppHandlers } from '@/lib/conveyor/handlers/app-handler'
-import { ProcessSnapshot } from './process'
+import { registerWindowHandlers } from '@/lib/conveyor/handlers/window-handler'
+import appIcon from '@/resources/build/icon2.png?asset'
+import { overwolf } from '@overwolf/ow-electron'
+import { app, BrowserWindow, nativeImage, shell } from 'electron'
+import __Store from 'electron-store' // https://github.com/sindresorhus/electron-store/issues/289#issuecomment-2899942966
+import { join } from 'path'
+import { StoreProps } from '../types'
 import Core from './core'
+import { ProcessSnapshot } from './process'
+import { registerResourcesProtocol } from './protocols'
 import { show } from './shared'
+
+const owElectronApp = app as overwolf.OverwolfApp
+
+export const Store = (__Store as any).default || __Store
+const store: __Store<StoreProps> = new Store()
 
 interface AppWindow extends BrowserWindow {
   setActiveProcess: (process: ProcessSnapshot | null) => void
@@ -36,10 +44,23 @@ export function createAppWindow(): AppWindow {
 
   // Register IPC events for the main window.
   registerWindowHandlers(mainWindow)
-  registerAppHandlers(app)
+  registerAppHandlers(app, store)
 
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
+
+    setTimeout(() => {
+      if (store.get('firstRun', true)) {
+        mainWindow.webContents?.send('on-first-run')
+        owElectronApp.overwolf?.isCMPRequired().then((required: boolean) => {
+          console.log('CMP required:', required)
+          if (required) {
+            owElectronApp.overwolf.openAdPrivacySettingsWindow()
+          }
+        })
+        store.set('firstRun', false)
+      }
+    }, 500)
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {

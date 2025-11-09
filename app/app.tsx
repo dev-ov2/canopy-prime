@@ -1,6 +1,11 @@
+import { useState, useEffect } from 'react'
 import { DesktopFrame } from './components/core'
 import { Titlebar } from './components/window/Titlebar'
+import Landing from './landing'
 import './styles/app.css'
+import { useConveyor } from './hooks/use-conveyor'
+import ChakraProvider from './components/ui/provider'
+import useReceiver from './components/core/hooks/useReceiver'
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -12,6 +17,21 @@ declare global {
 }
 
 export default function App() {
+  const app = useConveyor('app')
+  const [open, setOpen] = useState<boolean>(false)
+  const [hasUpdate, setHasUpdate] = useState<boolean>(false)
+  useReceiver(undefined, () => setOpen(true))
+
+  useEffect(() => {
+    app.onFirstRun(() => {
+      setOpen(true)
+    })
+
+    app.updateAvailable(() => {
+      setHasUpdate(true)
+    })
+  }, [app, setHasUpdate])
+
   return (
     <div className="relative">
       <Titlebar />
@@ -22,18 +42,29 @@ export default function App() {
               <DesktopFrame screen="desktop" hasUpdate={false} />
             </div>
             <div className="flex flex-0 h-[90px] items-center justify-center">
-              <div className="w-[728px] h-[90px] bg-transparent">
-                <owadview />
-              </div>
+              {open ? (
+                <></>
+              ) : (
+                <div className="w-[728px] h-[90px] bg-transparent">
+                  <owadview />
+                </div>
+              )}
             </div>
           </div>
         </div>
         <div className="mt-(--window-titlebar-height) flex flex-0 w-[400px] items-center justify-center">
-          <div className="w-[400px] h-[600px] bg-transparent">
-            <owadview />
-          </div>
+          {open ? (
+            <></>
+          ) : (
+            <div className="w-[400px] h-[600px] bg-transparent">
+              <owadview />
+            </div>
+          )}
         </div>
       </div>
+      <ChakraProvider>
+        <Landing open={open} setOpen={setOpen} hasUpdate={hasUpdate} />
+      </ChakraProvider>
     </div>
   )
 }
