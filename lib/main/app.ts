@@ -1,13 +1,14 @@
-import { BrowserWindow, shell, app } from 'electron'
+import { BrowserWindow, shell, app, nativeImage } from 'electron'
 import { join } from 'path'
-import appIcon from '@/resources/build/icon.png?asset'
+import appIcon from '@/resources/build/icon2.png?asset'
 import { registerResourcesProtocol } from './protocols'
 import { registerWindowHandlers } from '@/lib/conveyor/handlers/window-handler'
 import { registerAppHandlers } from '@/lib/conveyor/handlers/app-handler'
 import { ProcessSnapshot } from './process'
 import Core from './core'
+import { show } from './shared'
 
-interface AppWindow {
+interface AppWindow extends BrowserWindow {
   setActiveProcess: (process: ProcessSnapshot | null) => void
 }
 
@@ -21,7 +22,7 @@ export function createAppWindow(): AppWindow {
     height: 670,
     show: false,
     backgroundColor: '#1c1c1c',
-    icon: appIcon,
+    icon: nativeImage.createFromDataURL(appIcon),
     frame: false,
     titleBarStyle: 'hiddenInset',
     title: 'Canopy',
@@ -74,6 +75,7 @@ export function createAppWindow(): AppWindow {
   }
 
   const setActiveProcess = (process: ProcessSnapshot | null) => {
+    show(mainWindow)
     activeProcess = process
     if (process && count === null) {
       count = Core.count(onIntervalComplete)
@@ -83,7 +85,7 @@ export function createAppWindow(): AppWindow {
     }
   }
 
-  return {
-    setActiveProcess,
-  }
+  const appWindow: AppWindow = Object.assign(mainWindow, { setActiveProcess })
+
+  return appWindow
 }

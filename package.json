@@ -26,6 +26,7 @@
     "build:mac": "run-s vite:build:app electron:build:mac",
     "build:linux": "run-s vite:build:app electron:build:linux",
     "ow:dev": "vite dev",
+    "ow:build": "vite build",
     "ow:build:win": "run-s vite:build:app ow-electron-builder --c.extraMetadata.name=Canopy --publish=\"never\""
   },
   "overwolf": {
@@ -53,6 +54,7 @@
     "better-sqlite3": "^12.4.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "electron-log": "^5.4.3",
     "electron-updater": "^6.6.2",
     "koffi": "^2.14.1",
     "lucide-react": "^0.541.0",
@@ -97,5 +99,14 @@
   },
   "alias": {
     "electron": "@overwolf/ow-electron"
+  },
+  "build": {
+    "publish": [
+      {
+        "provider": "generic",
+        "url": "https://electron-updates.overwolf.com/electron-updates/electron/hbdkmbbfediokpddpgbpeojalkhapldlnfandmim",
+        "channel": "latest"
+      }
+    ]
   }
 }
