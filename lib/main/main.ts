@@ -1,22 +1,17 @@
+import appIcon from '@/resources/build/icon.png?asset'
 import { electronApp, optimizer } from '@electron-toolkit/utils'
 import { isElectronOverwolf } from '@overwolf/electron-is-overwolf'
 import { app, BrowserWindow, Menu, nativeImage, Tray } from 'electron'
 import log from 'electron-log'
 import { autoUpdater } from 'electron-updater'
-import path from 'path'
-import { fileURLToPath } from 'url'
 import { Logger } from '../utils'
 import { createAppWindow } from './app'
 import { GameRepository } from './db'
 import { Steam } from './game-detection'
 import Process from './process'
-import appIcon from '@/resources/build/icon.png?asset'
 
 let isQuitting = false
 let tray: Tray
-
-export const __dirname = path.dirname(fileURLToPath(import.meta.url))
-export const RENDERER_DIST = path.join(__dirname, '..', 'out', 'renderer')
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.

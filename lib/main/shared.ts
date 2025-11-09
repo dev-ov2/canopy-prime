@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron'
+import { screen, BrowserWindow, ipcMain } from 'electron'
 import { ipcSchemas, validateArgs, validateReturn, type ChannelArgs, type ChannelReturn } from '@/lib/conveyor/schemas'
 
 /**
@@ -22,4 +22,42 @@ export const handle = <T extends keyof typeof ipcSchemas>(
       throw error
     }
   })
+}
+
+export enum DisplayType {
+  PRIMARY = 0,
+  SECONDARY = 1,
+}
+
+export const show = (window: BrowserWindow | null, displayType: DisplayType = DisplayType.SECONDARY) => {
+  const primaryDisplay = screen.getPrimaryDisplay()
+
+  let targetDisplay
+  switch (displayType) {
+    case DisplayType.PRIMARY:
+      targetDisplay = primaryDisplay
+      break
+    case DisplayType.SECONDARY:
+      targetDisplay = screen.getAllDisplays().find((d) => d.id !== primaryDisplay.id) || primaryDisplay
+      break
+  }
+
+  // Get the bounds of the target display
+  const { x, y, width, height } = targetDisplay.bounds
+
+  if (window) {
+    const [windowWidth, windowHeight] = window.getSize()
+
+    // Position window at the center of the target display
+    const newX = x + Math.floor((width - windowWidth) / 2)
+    const newY = y + Math.floor((height - windowHeight) / 2)
+
+    window.setPosition(newX, newY)
+    window.setAlwaysOnTop(true, 'screen-saver')
+    window.show()
+
+    setTimeout(() => {
+      window.setAlwaysOnTop(false)
+    }, 100)
+  }
 }

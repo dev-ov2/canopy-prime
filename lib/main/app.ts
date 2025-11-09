@@ -6,6 +6,7 @@ import { registerWindowHandlers } from '@/lib/conveyor/handlers/window-handler'
 import { registerAppHandlers } from '@/lib/conveyor/handlers/app-handler'
 import { ProcessSnapshot } from './process'
 import Core from './core'
+import { show } from './shared'
 
 interface AppWindow extends BrowserWindow {
   setActiveProcess: (process: ProcessSnapshot | null) => void
@@ -74,6 +75,7 @@ export function createAppWindow(): AppWindow {
   }
 
   const setActiveProcess = (process: ProcessSnapshot | null) => {
+    show(mainWindow)
     activeProcess = process
     if (process && count === null) {
       count = Core.count(onIntervalComplete)
