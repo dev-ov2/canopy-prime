@@ -99,5 +99,14 @@
   },
   "alias": {
     "electron": "@overwolf/ow-electron"
+  },
+  "build": {
+    "publish": [
+      {
+        "provider": "generic",
+        "url": "https://electron-updates.overwolf.com/electron-updates/electron/hbdkmbbfediokpddpgbpeojalkhapldlnfandmim",
+        "channel": "latest"
+      }
+    ]
   }
 }
