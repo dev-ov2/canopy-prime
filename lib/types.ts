@@ -16,6 +16,8 @@ export interface StoreProps {
   appSettings: AppSettings
 }
 export interface IntervalResponse {
+  state: 'started' | 'stopped'
   appId: string
   source: string
+  name: string
 }

@@ -1,11 +1,14 @@
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
-import path from 'path'
+import path, { resolve } from 'path'
 import { defineConfig } from 'vite'
 import electron from 'vite-plugin-electron/simple'
 
-const rootDir = __dirname
-const alias = { '@': rootDir }
+const alias = {
+  '@/app': resolve(__dirname, 'app'),
+  '@/lib': resolve(__dirname, 'lib'),
+  '@/resources': resolve(__dirname, 'resources'),
+}
 
 export default defineConfig({
   build: {
@@ -18,8 +21,8 @@ export default defineConfig({
   },
   resolve: { alias },
   plugins: [
-    react(),
     tailwindcss(),
+    react(),
     electron({
       main: {
         entry: path.resolve(__dirname, 'lib/main/main.ts'),
@@ -45,7 +48,7 @@ export default defineConfig({
           resolve: { alias },
           build: {
             rollupOptions: {
-              external: ['electron', 'koffi', /\.node$/],
+              external: ['electron'],
             },
             outDir: 'out/preload',
           },

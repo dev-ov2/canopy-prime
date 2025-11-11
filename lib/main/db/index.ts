@@ -1,4 +1,7 @@
-import Database from 'better-sqlite3'
+import { Logger } from '@/lib/utils'
+import { app } from 'electron'
+import fs from 'fs'
+import path from 'path'
 
 export interface GameRecord {
   appId: string | number
@@ -9,10 +12,23 @@ export interface GameRecord {
 }
 
 export class GameRepository {
-  private readonly db: Database.Database
+  private readonly db: any
 
   constructor(databaseFile: string) {
-    this.db = new Database(databaseFile)
+    const dbDir = path.join(app.getPath('userData'), 'db')
+    try {
+      const dbDir = path.join(app.getPath('userData'), 'db')
+      if (!fs.existsSync(dbDir)) {
+        fs.mkdirSync(dbDir, { recursive: true })
+      }
+    } catch (err) {
+      Logger.warn(`Failed to ensure db directory exists: ${(err as any)?.message ?? err}`)
+    }
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const Database = require('better-sqlite3')
+    const dbFile = app.isPackaged ? path.join(dbDir, 'canopy.games.db') : databaseFile
+
+    this.db = new Database(app.isPackaged ? dbFile : databaseFile)
     this.db.pragma('journal_mode = WAL')
     this.initialize()
     this.seed()
@@ -172,5 +188,79 @@ export class GameRepository {
     )
 
     return stmt.all() as GameRecord[]
+  }
+}
+
+export class SettingsRepository {
+  private readonly db: any
+  constructor(databaseFile: string) {
+    const dbDir = path.join(app.getPath('userData'), 'db')
+    try {
+      const dbDir = path.join(app.getPath('userData'), 'db')
+      if (!fs.existsSync(dbDir)) {
+        fs.mkdirSync(dbDir, { recursive: true })
+      }
+    } catch (err) {
+      Logger.warn(`Failed to ensure db directory exists: ${(err as any)?.message ?? err}`)
+    }
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const Database = require('better-sqlite3')
+    const dbFile = app.isPackaged ? path.join(dbDir, 'canopy.settings.db') : databaseFile
+    this.db = new Database(app.isPackaged ? dbFile : databaseFile)
+    this.db.pragma('journal_mode = WAL')
+    this.initialize()
+  }
+
+  private initialize(): void {
+    this.db
+      .prepare(
+        `
+                    CREATE TABLE IF NOT EXISTS settings (
+                            key TEXT PRIMARY KEY,
+                            value TEXT NOT NULL
+                    )
+                `
+      )
+      .run()
+  }
+
+  upsert(key: string, value: string): void {
+    const stmt = this.db.prepare(
+      `
+                INSERT INTO settings (key, value)
+                VALUES (?, ?)
+                ON CONFLICT(key) DO UPDATE SET
+                        value = EXCLUDED.value
+            `
+    )
+    stmt.run(key, value)
+  }
+
+  get(key: string, defaultValue?: string): string | undefined {
+    const stmt = this.db.prepare(
+      `
+                SELECT value
+                FROM settings
+                WHERE key = ?
+            `
+    )
+    const row = stmt.get(key)
+    if (!row) return defaultValue
+    return row.value
+  }
+
+  getAll(): Record<string, string> {
+    const stmt = this.db.prepare(
+      `
+                SELECT key, value
+                FROM settings
+            `
+    )
+    const rows = stmt.all()
+    const result: Record<string, string> = {}
+    for (const row of rows) {
+      result[row.key] = row.value
+    }
+    return result
   }
 }

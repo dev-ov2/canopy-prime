@@ -249,8 +249,10 @@ function monitor(gameRepository: GameRepository, onGameDetected: ProcessListener
         trackedGame = game
         onGameDetected(game)
       } else if (!game) {
-        trackedGame = null
-        onGameDetected(null)
+        if (trackedGame !== null) {
+          trackedGame = null
+          onGameDetected(null)
+        }
       }
     } catch (error) {
       console.error('Failed to read process list', error)

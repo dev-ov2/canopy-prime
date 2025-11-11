@@ -1,4 +1,4 @@
-import appIcon from '@/resources/build/icon.png?asset'
+import appIcon from '@/resources/assets/icon.png?asset'
 import { electronApp, optimizer } from '@electron-toolkit/utils'
 import { isElectronOverwolf } from '@overwolf/electron-is-overwolf'
 import { app, BrowserWindow, Menu, nativeImage, Tray } from 'electron'
@@ -6,7 +6,7 @@ import log from 'electron-log'
 import { autoUpdater } from 'electron-updater'
 import { Logger } from '../utils'
 import { createAppWindow } from './app'
-import { GameRepository } from './db'
+import { GameRepository, SettingsRepository } from './db'
 import { Steam } from './game-detection'
 import Process from './process'
 
@@ -18,18 +18,17 @@ let tray: Tray
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
   // Set app user model id for windows
-  electronApp.setAppUserModelId('com.electron')
+  electronApp.setAppUserModelId('com.canopy')
   // Create app window
 
   const hasSingleInstanceLock = app.requestSingleInstanceLock()
   if (!hasSingleInstanceLock) {
     app.quit()
   } else {
-    app.setLoginItemSettings({
-      openAtLogin: true,
-    })
+    const gameRepository = new GameRepository('games.db')
+    const settingsRepository = new SettingsRepository('settings.db')
 
-    const window = createAppWindow()
+    const window = createAppWindow(settingsRepository)
 
     app.on('window-all-closed', () => {
       if (process.platform !== 'darwin') {
@@ -45,6 +44,7 @@ app.whenReady().then(() => {
     })
 
     app.on('second-instance', () => {
+      Logger.info('Second instance detected')
       if (app) {
         if (window) {
           if (window.isMinimized()) window.restore()
@@ -55,8 +55,6 @@ app.whenReady().then(() => {
         }
       }
     })
-
-    const gameRepository = new GameRepository('games.db')
 
     // Enable process monitoring
     Process.monitor(gameRepository, (game) => {
@@ -74,17 +72,27 @@ app.whenReady().then(() => {
     })
 
     autoUpdater.on('update-downloaded', () => {
-      console.info('AutoUpdater', 'Update downloaded and ready to install.')
+      Logger.info('AutoUpdater', 'Update downloaded and ready to install.')
       window?.webContents.send('update-downloaded')
     })
 
-    tray = new Tray(nativeImage.createFromDataURL(appIcon))
+    const trayImage = app.isPackaged
+      ? nativeImage.createFromPath(`${app.getAppPath()}/resources/assets/icon2.png`)
+      : nativeImage.createFromDataURL(appIcon)
+
+    tray = new Tray(trayImage)
 
     const contextMenu = Menu.buildFromTemplate([
       {
         label: 'Show App',
         click: () => {
           window?.show()
+        },
+      },
+      {
+        label: 'Scan for Games',
+        click: () => {
+          Steam.detect(gameRepository)
         },
       },
       {
@@ -119,7 +127,7 @@ app.whenReady().then(() => {
         // On macOS it's common to re-create a window in the app when the
         // dock icon is clicked and there are no other windows open.
         if (BrowserWindow.getAllWindows().length === 0) {
-          createAppWindow()
+          createAppWindow(settingsRepository)
         }
       })
     }
