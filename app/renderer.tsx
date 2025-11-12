@@ -1,6 +1,7 @@
+import './styles/app.css'
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import appIcon from '@/resources/build/icon.png'
+import appIcon from '@/resources/assets/icon.png'
 import { WindowContextProvider, menuItems } from '@/app/components/window'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import App from './app'

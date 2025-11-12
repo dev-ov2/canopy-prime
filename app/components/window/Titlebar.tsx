@@ -29,18 +29,19 @@ export const Titlebar = () => {
 
   return (
     <div className={`window-titlebar ${wcontext?.platform ? `platform-${wcontext.platform}` : ''}`}>
-      <div className={'flex-2 w-72 self-center justify-center align-middle items-center'} />
+      <div className={'flex-1 w-72 self-center justify-center align-middle items-center'} />
 
-      <div className={'flex gap-4 justify-between pr-12 flex-1 h-full'}>
-        <div
-          className="flex-1"
-          style={
-            {
-              '-webkit-app-region': 'drag',
-            } as any
-          }
-        />
-        <div className=" w-25" />
+      <div
+        className="flex flex-col align-middle justify-between h-full w-[400px] z-60 pr-24 py-3"
+        style={
+          {
+            '-webkit-app-region': 'drag',
+          } as any
+        }
+      >
+        <div className="mx-4 border h-0 border-gray-700/10" />
+        <div className="mx-4 border h-0 border-gray-700/10" />
+        <div className="mx-4 border h-0 border-gray-700/10" />
       </div>
       {menusVisible && <TitlebarMenu />}
       {wcontext?.platform === 'win32' && <TitlebarControls />}

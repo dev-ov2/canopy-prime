@@ -1,17 +1,18 @@
-import { type App } from 'electron'
+import { SettingsRepository } from '@/lib/main/db'
 import { handle } from '@/lib/main/shared'
-import Store from 'electron-store'
-import { shell } from 'electron'
-import { StoreProps } from '@/lib/types'
+import { shell, type App } from 'electron'
 
-export const registerAppHandlers = (app: App, store: Store<StoreProps>) => {
+export const registerAppHandlers = (app: App, settingsRepository: SettingsRepository) => {
   // App operations
   handle('version', () => app.getVersion())
   handle('get-settings', () => {
-    return store.get('appSettings')
+    const json = settingsRepository.get('appSettings') || '{}'
+    return JSON.parse(json)
   })
   handle('set-settings', (settings: any) => {
-    store.set('appSettings', settings)
+    if (Object.entries(settings).length > 0) {
+      settingsRepository.upsert('appSettings', JSON.stringify(settings))
+    }
     app.setLoginItemSettings({
       openAtLogin: settings.runAtStartup,
     })

@@ -7,10 +7,26 @@ export const appIpcSchema = {
   },
   'get-settings': {
     args: z.tuple([]),
-    return: z.any(),
+    return: z.object({
+      runAtStartup: z.boolean().optional(),
+      hotkeyConfig: z
+        .object({ ctrl: z.boolean(), shift: z.boolean(), alt: z.boolean(), meta: z.boolean(), keyCode: z.number() })
+        .optional(),
+      useSmallOverlay: z.boolean().optional(),
+    }),
   },
   'set-settings': {
-    args: z.tuple([z.object()]),
+    args: z.tuple([
+      z
+        .object({
+          runAtStartup: z.boolean(),
+          hotkeyConfig: z
+            .object({ ctrl: z.boolean(), shift: z.boolean(), alt: z.boolean(), meta: z.boolean(), keyCode: z.number() })
+            .optional(),
+          useSmallOverlay: z.boolean().optional(),
+        })
+        .partial(),
+    ]),
     return: z.void(),
   },
   'open-external-link': {
@@ -29,11 +45,13 @@ export const appIpcSchema = {
     args: z.tuple([]),
     return: z.void(),
   },
-  'interval-complete': {
+  'game-state-update': {
     args: z.tuple([]),
     handlerArgs: z.object({
+      state: z.enum(['started', 'stopped']),
       appId: z.string(),
       source: z.string(),
+      name: z.string(),
     }),
     return: z.void(),
   },

@@ -1,5 +1,8 @@
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
+import log from 'electron-log'
+
+log.initialize()
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -23,13 +26,13 @@ export interface LoggerInterface {
 
 let internalLogger = {
   info: (...args: any[]) => {
-    console.log(...args)
+    log.info(...args)
   },
   warn: (...args: any[]) => {
-    console.warn(...args)
+    log.warn(...args)
   },
   error: (...args: any[]) => {
-    console.error(...args)
+    log.error(...args)
   },
 }
 

@@ -1,7 +1,7 @@
 import { DetailedHTMLProps, IframeHTMLAttributes, useCallback, useRef } from 'react'
 import { useCoreUrl } from './hooks'
 import useInitialize from './hooks/useInitialize'
-import useIntervalComplete from './hooks/useIntervalComplete'
+import useGameState from './hooks/useGameState'
 import { CORE_URL, PRIME_UID } from './utils'
 import { IntervalResponse } from '@/lib/types'
 
@@ -56,13 +56,13 @@ export function DesktopFrame({
   const src = useCoreUrl(screen, gameId, gameTitle, '', { hasUpdate })
   const iframeRef = useRef<HTMLIFrameElement | null>(null)
 
-  const dispatchIntervalComplete = useCallback(
+  const dispatchGameState = useCallback(
     (props: IntervalResponse) => {
       if (iframeRef.current?.contentWindow) {
         iframeRef.current.contentWindow.postMessage(
           {
             type: 'FROM_CORE',
-            data: { action: 'INTERVAL_COMPLETE', data: { data: props } },
+            data: { action: 'GAME_STATE_UPDATE', data: { data: props } },
           },
           CORE_URL
         )
@@ -73,7 +73,7 @@ export function DesktopFrame({
 
   useInitialize('ACK', iframeRef, gameId, 'desktop')
 
-  useIntervalComplete(dispatchIntervalComplete)
+  useGameState(dispatchGameState)
 
   return (
     <Frame

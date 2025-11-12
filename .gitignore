@@ -4,5 +4,7 @@ out
 .DS_Store
 *.log*
 temp
+release
 
 games.db*
+settings.db*

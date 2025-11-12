@@ -14,7 +14,7 @@
     "format": "prettier --write .",
     "lint": "eslint . --ext .ts,.tsx --fix",
     "start": "electron-vite preview",
-    "postinstall": "electron-builder install-app-deps",
+    "postinstall": "ow-electron-builder install-app-deps",
     "vite:build:app": "electron-vite build",
     "vite:build:app:watch": "electron-vite build --watch",
     "electron:build:win": "electron-builder --win",
@@ -27,7 +27,7 @@
     "build:linux": "run-s vite:build:app electron:build:linux",
     "ow:dev": "vite dev",
     "ow:build": "vite build",
-    "ow:build:win": "run-s vite:build:app ow-electron-builder --c.extraMetadata.name=Canopy --publish=\"never\""
+    "ow:build:win": "pnpm run ow:build && ow-electron-builder --c.extraMetadata.name=Canopy --publish=\"never\""
   },
   "overwolf": {
     "packages": []
@@ -45,7 +45,6 @@
     ]
   },
   "dependencies": {
-    "@chakra-ui/react": "3.8.2",
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
     "@node-steam/vdf": "^2.2.0",
@@ -77,14 +76,14 @@
     "@overwolf/ow-electron-builder": "26.0.12",
     "@overwolf/ow-electron-packages-types": "1.0.2",
     "@rushstack/eslint-patch": "^1.12.0",
-    "@tailwindcss/vite": "^4.1.12",
+    "@tailwindcss/vite": "^4.1.17",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^24.3.0",
     "@types/react": "^19.1.11",
     "@types/react-dom": "^19.1.8",
     "@vitejs/plugin-react": "^5.0.1",
     "cross-env": "^10.0.0",
-    "electron": "^37.3.1",
+    "electron": "37.7.0",
     "electron-builder": "^26.0.12",
     "electron-vite": "^4.0.0",
     "eslint": "^9.34.0",
@@ -95,7 +94,7 @@
     "prettier": "^3.6.2",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "tailwindcss": "^4.1.12",
+    "tailwindcss": "^4.1.17",
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.41.0",
     "vite": "^7.1.3",
@@ -105,6 +104,50 @@
     "electron": "@overwolf/ow-electron"
   },
   "build": {
+    "electronVersion": "37.7.0",
+    "nodeGypRebuild": false,
+    "npmRebuild": true,
+    "appId": "com.canopy.overwolf",
+    "asar": true,
+    "asarUnpack": [
+      "**/better-sqlite3/build/Release/better_sqlite3.node",
+      "**/koffi/build/koffi/win*/koffi.node"
+    ],
+    "overwolf": {
+      "disableAdOptimization": false
+    },
+    "productName": "Canopy",
+    "directories": {
+      "buildResources": "build",
+      "output": "release"
+    },
+    "files": [
+      "out/**/*",
+      "resources/assets/**",
+      "!**/*.map",
+      "!**/{test,tests,__tests__,example,examples,doc,docs}/**",
+      "!**/*.{md,markdown,ts,tsx}#dev-only"
+    ],
+    "copyright": "Copyright 2025 Studi OV2.",
+    "win": {
+      "icon": "resources/build/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "${productName}-Setup-${version}.${ext}",
+      "verifyUpdateCodeSignature": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": true,
+      "allowToChangeInstallationDirectory": true,
+      "include": "build/installer.nsh"
+    },
     "publish": [
       {
         "provider": "generic",

@@ -1,11 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { DesktopFrame } from './components/core'
-import { Titlebar } from './components/window/Titlebar'
-import Landing from './landing'
-import './styles/app.css'
-import { useConveyor } from './hooks/use-conveyor'
-import ChakraProvider from './components/ui/provider'
 import useReceiver from './components/core/hooks/useReceiver'
+import { Titlebar } from './components/window/Titlebar'
+import { useConveyor } from './hooks/use-conveyor'
+import Landing from './landing'
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -62,9 +60,7 @@ export default function App() {
           )}
         </div>
       </div>
-      <ChakraProvider>
-        <Landing open={open} setOpen={setOpen} hasUpdate={hasUpdate} />
-      </ChakraProvider>
+      <Landing open={open} setOpen={setOpen} hasUpdate={hasUpdate} />
     </div>
   )
 }
