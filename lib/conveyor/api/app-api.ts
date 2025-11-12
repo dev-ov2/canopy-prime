@@ -13,4 +13,5 @@ export class AppApi extends ConveyorApi {
   onFirstRun = (handler: () => void) => this.send('on-first-run', handler)
   updateAvailable = (handler: () => void) => this.send('update-available', handler)
   updateDownloaded = (handler: () => void) => this.send('update-downloaded', handler)
+  onTokenReceived = (handler: (token: string) => void) => this.send('token-received', handler)
 }

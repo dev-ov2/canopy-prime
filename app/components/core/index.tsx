@@ -4,6 +4,7 @@ import useInitialize from './hooks/useInitialize'
 import useGameState from './hooks/useGameState'
 import { CORE_URL, PRIME_UID } from './utils'
 import { IntervalResponse } from '@/lib/types'
+import useTokenReceived from './hooks/useTokenReceived'
 
 interface ScreenSize {
   width: number
@@ -74,6 +75,23 @@ export function DesktopFrame({
   useInitialize('ACK', iframeRef, gameId, 'desktop')
 
   useGameState(dispatchGameState)
+
+  const dispatchToken = useCallback(
+    (token: string) => {
+      if (iframeRef.current?.contentWindow) {
+        iframeRef.current.contentWindow.postMessage(
+          {
+            type: 'FROM_CORE',
+            data: { action: 'TOKEN_RECEIVED', data: { data: { token } } },
+          },
+          CORE_URL
+        )
+      }
+    },
+    [iframeRef]
+  )
+
+  useTokenReceived(dispatchToken)
 
   return (
     <Frame
