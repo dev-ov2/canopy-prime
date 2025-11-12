@@ -19,7 +19,7 @@ let tray: Tray
 app.whenReady().then(() => {
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.canopy')
-  // Create app window
+  app.setAsDefaultProtocolClient('canopy')
 
   const hasSingleInstanceLock = app.requestSingleInstanceLock()
   if (!hasSingleInstanceLock) {
@@ -43,13 +43,35 @@ app.whenReady().then(() => {
       }
     })
 
-    app.on('second-instance', () => {
+    app.on('second-instance', async (_event: Electron.Event, argv: string[]) => {
       Logger.info('Second instance detected')
       if (app) {
         if (window) {
           if (window.isMinimized()) window.restore()
           window.show()
           window.focus()
+          const urlArg = argv.find((a) => a.startsWith('canopy://'))
+
+          if (urlArg) {
+            const url = new URL(urlArg)
+            Logger.info('Received URL arg on second-instance')
+            if (url.hash.includes('id_token=')) {
+              Logger.info('URL arg is token request. Exchanging token...')
+              try {
+                const res = await fetch('https://us-central1-canopy-yponac.cloudfunctions.net/exchangeFirebaseToken', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({ token: new URL(urlArg).hash.split('id_token=')[1] }),
+                })
+                const json = await res.json()
+                window.webContents.send('token-received', json.customToken)
+              } catch (e) {
+                Logger.error('Error exchanging token:', e)
+              }
+            }
+          }
         } else {
           Logger.warn('WARN: Main window is not defined on second-instance')
         }
@@ -61,7 +83,7 @@ app.whenReady().then(() => {
       window.setActiveProcess(game)
     })
 
-    Steam.detect(gameRepository) // TODO add button to trigger manual scan
+    Steam.detect(gameRepository)
 
     autoUpdater.checkForUpdatesAndNotify() // TODO configure to GitHub
 

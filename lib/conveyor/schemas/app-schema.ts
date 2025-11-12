@@ -70,4 +70,9 @@ export const appIpcSchema = {
     handlerArgs: z.tuple([]),
     return: z.void(),
   },
+  'token-received': {
+    args: z.tuple([]),
+    handlerArgs: z.string(),
+    return: z.void(),
+  },
 }
