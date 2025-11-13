@@ -1,7 +1,7 @@
 {
   "name": "@canopy/overwolf-electron",
   "productName": "Canopy",
-  "version": "2.0.0",
+  "version": "2.0.4",
   "description": "Complete tasks, earn points, and plant trees while playing your favorite games!",
   "license": "MIT",
   "author": {
