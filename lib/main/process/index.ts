@@ -2,7 +2,7 @@ import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { getImagePathViaFFI } from './ffi'
 import { GameRepository } from '../db'
-import { indexOfNth } from '@/lib/utils'
+import { indexOfNth, Logger } from '@/lib/utils'
 import { Source } from '../game-detection/shared'
 
 const IGNORED_PROCESSES = new Set<string>([
@@ -248,6 +248,7 @@ function monitor(gameRepository: GameRepository, onGameDetected: ProcessListener
       if (game && game?.pid !== trackedGame?.pid) {
         trackedGame = game
         onGameDetected(game)
+        Logger.info('Detected game process', game)
       } else if (!game) {
         if (trackedGame !== null) {
           trackedGame = null
