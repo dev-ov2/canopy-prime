@@ -1,28 +1,37 @@
 import fs from 'fs'
 import path from 'path'
 
+import { Logger } from '@/lib/utils'
+import { parse as parseVdf } from '@node-steam/vdf'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
-import * as vdf from 'vdf'
 import { GameRepository } from '../db'
 import { Source } from './shared'
-import { parse as parseVdf } from '@node-steam/vdf'
 
 const execFileAsync = promisify(execFile)
 
 export async function findSteamExecutable(): Promise<string | null> {
-  try {
-    const { stdout } = await execFileAsync('powershell.exe', [
-      '-NoProfile',
-      '-NonInteractive',
-      '-Command',
-      'Get-Command -Name steam.exe -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source',
-    ])
+  const command =
+    "$ErrorActionPreference='Stop'; " +
+    'Get-CimInstance -ClassName Win32_Process | ' +
+    'Where-Object { $_.Name -and ($_.Name -ieq "steam.exe") -and $_.SessionId -ne 0 } | ' +
+    'Select-Object ProcessId, ParentProcessId, Name, ExecutablePath, CommandLine, SessionId, @{Name="FileDescription";Expression={if ($_.ExecutablePath) { (Get-Item $_.ExecutablePath).VersionInfo.FileDescription } else { $null }}} | ' +
+    'ConvertTo-Json -Compress'
 
-    const path = stdout.trim()
-    return path.length > 0 ? path : null
-  } catch (error) {
-    console.error('Error finding Steam executable:', error)
+  try {
+    const { stdout } = await execFileAsync('powershell.exe', ['-NoProfile', '-Command', command])
+
+    try {
+      const json = JSON.parse(stdout)
+      const path = json?.ExecutablePath ?? json?.Path ?? ''
+      return path.length > 0 ? path : null
+    } catch (e) {
+      if (stdout.length === 0) throw new Error('no Steam process is running')
+
+      throw e
+    }
+  } catch (error: any) {
+    Logger.error('Error finding Steam executable:', error.message)
     return null
   }
 }
@@ -54,14 +63,14 @@ export async function getSteamLibraries(): Promise<string[]> {
             libs.push(normalizeLibraryPath(entry))
           }
         }
-        return []
+        return libs
       } catch (error) {
-        console.error('Error reading libraryfolders.vdf:', error)
+        Logger.error('Error reading libraryfolders.vdf:', error)
         return []
       }
     }
   }
-  return []
+  throw new Error('err_no_steam.exe')
 }
 
 interface GameInfo {
@@ -70,42 +79,49 @@ interface GameInfo {
   name: string
 }
 
-export async function detectGames(gameRepository: GameRepository): Promise<Record<number, GameInfo>> {
-  const libraries = await getSteamLibraries()
-  const games: Record<number, GameInfo> = {}
+export async function detectGames(gameRepository: GameRepository) {
+  try {
+    Logger.info('[Steam] detectGames invoked. Scanning for Steam games...')
+    const libraries = await getSteamLibraries()
+    const games: Record<number, GameInfo> = {}
 
-  for (const library of libraries) {
-    const files = fs.readdirSync(path.join(library, 'steamapps'))
-    for (const file of files) {
-      if (file.endsWith('.acf')) {
-        const gameId = parseInt(file.split('_')[1])
-        if (!Number.isNaN(gameId)) {
-          const manifestPath = path.join(library, 'steamapps', file)
-          try {
-            const manifest = parseVdf(fs.readFileSync(manifestPath, 'utf8'))
-            const appState = manifest.AppState ?? manifest.appstate ?? manifest
-            const installDir = (appState?.installdir ?? appState?.InstallDir)?.trim()
-            if (installDir) {
-              games[gameId] = {
-                appId: gameId,
-                installPath: path.join('steamapps', 'common', installDir),
-                name: (appState?.name ?? appState?.Name ?? '').trim(),
+    for (const library of libraries) {
+      const files = fs.readdirSync(path.join(library, 'steamapps'))
+      for (const file of files) {
+        if (file.endsWith('.acf')) {
+          const gameId = parseInt(file.split('_')[1])
+          if (!Number.isNaN(gameId)) {
+            const manifestPath = path.join(library, 'steamapps', file)
+            try {
+              const manifest = parseVdf(fs.readFileSync(manifestPath, 'utf8'))
+              const appState = manifest.AppState ?? manifest.appstate ?? manifest
+              const installDir = (appState?.installdir ?? appState?.InstallDir)?.trim()
+              if (installDir) {
+                games[gameId] = {
+                  appId: gameId,
+                  installPath: path.join('steamapps', 'common', installDir),
+                  name: (appState?.name ?? appState?.Name ?? '').trim(),
+                }
+                gameRepository.upsert({
+                  appId: gameId,
+                  path: path.join('steamapps', 'common', installDir).toLowerCase(),
+                  name: (appState?.name ?? appState?.Name ?? '').trim(),
+                  source: Source.Steam,
+                  executable: null, // we do not have the executable yet. We will fill this in later.
+                })
               }
-              gameRepository.upsert({
-                appId: gameId,
-                path: path.join('steamapps', 'common', installDir).toLowerCase(),
-                name: (appState?.name ?? appState?.Name ?? '').trim(),
-                source: Source.Steam,
-                executable: null, // we do not have the executable yet. We will fill this in later.
-              })
+            } catch (error) {
+              Logger.error('Failed to read manifest:', manifestPath, error)
             }
-          } catch (error) {
-            console.error('Failed to read manifest:', manifestPath, error)
           }
         }
       }
     }
+    Logger.info(`Detected ${Object.keys(games).length} Steam games in ${libraries.length} libraries.`)
+  } catch (e) {
+    if (e instanceof Error && e.message === 'err_no_steam.exe') {
+      Logger.warn('Steam executable not found. Retrying in 30 seconds...')
+      setTimeout(() => detectGames(gameRepository), 30000)
+    }
   }
-
-  return games
 }
