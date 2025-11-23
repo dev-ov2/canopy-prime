@@ -1,0 +1,52 @@
+name: publish
+
+on:
+  push:
+    tags:
+      - "v*"   # e.g. v2.1.0, v2.1.1
+
+jobs:
+  build-windows:
+    name: Build Canopy Overwolf (Windows)
+    runs-on: windows-latest
+
+    steps:
+      # 1. Checkout
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # so tags are available
+
+      # 2. Setup Node
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # 3. Setup pnpm
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      # 4. Install deps
+      - name: Install dependencies
+        run: pnpm install
+
+      # 5. Build Overwolf + Electron wrapper
+      #    ow:build → vite build for Overwolf
+      #    ow:build:win → runs ow:build + ow-electron-builder
+      - name: Build Overwolf Windows app
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pnpm run ow:build:win
+
+      # 6. Upload artifacts (installer + update files)
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-overwolf-build
+          path: |
+            release/**
+            out/**
+            dist/**
