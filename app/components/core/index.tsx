@@ -1,10 +1,10 @@
 import { DetailedHTMLProps, IframeHTMLAttributes, useCallback, useRef } from 'react'
 import { useCoreUrl } from './hooks'
 import useInitialize from './hooks/useInitialize'
-import useGameState from './hooks/useGameState'
+import useGameState from '../../hooks/useGameState'
 import { CORE_URL, PRIME_UID } from './utils'
 import { IntervalResponse } from '@/lib/types'
-import useTokenReceived from './hooks/useTokenReceived'
+import useTokenReceived from '../../hooks/useTokenReceived'
 
 interface ScreenSize {
   width: number
@@ -72,7 +72,7 @@ export function DesktopFrame({
     [iframeRef]
   )
 
-  useInitialize('ACK', iframeRef, gameId, 'desktop')
+  useInitialize('ACK', iframeRef)
 
   useGameState(dispatchGameState)
 

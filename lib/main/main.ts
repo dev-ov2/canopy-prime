@@ -4,11 +4,17 @@ import { isElectronOverwolf } from '@overwolf/electron-is-overwolf'
 import { app, BrowserWindow, Menu, nativeImage, Tray } from 'electron'
 import log from 'electron-log'
 import { autoUpdater } from 'electron-updater'
+import { registerAppHandlers } from '../conveyor/handlers/app-handler'
+import { registerWindowHandlers } from '../conveyor/handlers/window-handler'
 import { Logger } from '../utils'
 import { createAppWindow } from './app'
 import { GameRepository, SettingsRepository } from './db'
 import { Steam } from './game-detection'
+import { createObsWindow } from './obs'
+import { ObsOverlayServer } from './obs-server'
 import Process from './process'
+import { buildIntervalResponse } from './process/helpers'
+import { join } from 'path'
 
 let isQuitting = false
 let tray: Tray
@@ -29,6 +35,55 @@ app.whenReady().then(() => {
     const settingsRepository = new SettingsRepository('settings.db')
 
     const window = createAppWindow(settingsRepository)
+    const obs = createObsWindow(settingsRepository)
+
+    const rendererRoot = join(__dirname, '../renderer')
+    const devServerUrl = !app.isPackaged
+      ? (process.env['VITE_DEV_SERVER_URL'] ?? process.env['ELECTRON_RENDERER_URL'])
+      : undefined
+    const obsOverlayServer = new ObsOverlayServer({ rendererRoot, devServerUrl })
+
+    void obsOverlayServer.start().catch((error) => {
+      Logger.error('Failed to start OBS overlay server', error)
+    })
+
+    // Register IPC events for the main window.
+    registerWindowHandlers(window)
+    registerAppHandlers(app, settingsRepository, {
+      toggleOverlay: () => {
+        if (obs.isVisible()) {
+          obs.hide()
+        } else {
+          obs.show()
+        }
+      },
+      toggleOverlayDrag: (accelerator: string) => {
+        if (!obs.isVisible()) {
+          obs.show()
+        }
+        obs.focus()
+        obs.setMovable(!obs.isMovable())
+        obs.setIgnoreMouseEvents(!obs.isMovable())
+
+        obs.webContents.send('toggle-drag-mode', accelerator)
+      },
+      publishOverlayPayload: (payload) => {
+        obsOverlayServer.publishOverlayPayload(payload)
+      },
+      handleDisableOverlay: (disable: boolean) => {
+        if (disable) {
+          if (obs.isVisible()) {
+            obs.hide()
+          }
+        }
+
+        if (!disable) {
+          if (obs.activeProcess && !obs.isVisible()) {
+            obs.show()
+          }
+        }
+      },
+    })
 
     app.on('window-all-closed', () => {
       if (process.platform !== 'darwin') {
@@ -81,6 +136,9 @@ app.whenReady().then(() => {
     // Enable process monitoring
     Process.monitor(gameRepository, (game) => {
       window.setActiveProcess(game)
+      obs.setActiveProcess(game)
+      const intervalPayload = buildIntervalResponse(game)
+      obsOverlayServer.publishGameState(intervalPayload)
     })
 
     Steam.detect(gameRepository)
@@ -153,6 +211,10 @@ app.whenReady().then(() => {
         }
       })
     }
+
+    app.on('before-quit', () => {
+      obsOverlayServer.stop()
+    })
   }
 })
 

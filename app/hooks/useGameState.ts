@@ -6,9 +6,9 @@ const useGameState = (handler: (props: IntervalResponse) => void) => {
   const appApi = useConveyor('app')
 
   useEffect(() => {
-    const off = appApi.onGameStateUpdate(handler)
+    const off = appApi?.onGameStateUpdate(handler)
     return () => {
-      off()
+      off?.()
     }
   }, [appApi, handler])
 }

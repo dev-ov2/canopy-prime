@@ -1,13 +1,27 @@
 import { ComponentType, ReactNode, useEffect, useState } from 'react'
-import { LuAppWindow, LuUser, LuX } from 'react-icons/lu'
+import { LuAppWindow, LuPodcast, LuUser, LuX } from 'react-icons/lu'
 import { useConveyor } from '@/app/hooks/use-conveyor'
+import { Label } from '@/app/components/ui/label'
+import { Checkbox } from '@/app/components/ui/checkbox'
+import { Input } from '@/app/components/ui/input'
+import { HotkeyConfig } from '@/lib/types'
 
-const defaultHotkeyConfig = {
+export type TabValue = 'app' | 'privacy' | 'streaming'
+
+const defaultVisibilityHotkeyConfig: HotkeyConfig = {
   ctrl: true,
   shift: true,
   alt: false,
   meta: false,
-  keyCode: 'O'.charCodeAt(0),
+  key: 'O',
+}
+
+const defaultDragHotkeyConfig: HotkeyConfig = {
+  ctrl: true,
+  shift: true,
+  alt: false,
+  meta: false,
+  key: 'D',
 }
 
 type SettingsModalProps = {
@@ -22,11 +36,11 @@ type ContentProps = {
 }
 
 type TabButtonProps = {
-  value: 'app' | 'privacy'
+  value: TabValue
   label: string
   icon: ComponentType<{ className?: string }>
   isActive: boolean
-  onSelect: (value: 'app' | 'privacy') => void
+  onSelect: (value: TabValue) => void
 }
 
 const Content = ({ title, subtitle, children }: ContentProps) => {
@@ -74,13 +88,91 @@ const TabButton = ({ value, label, icon: Icon, isActive, onSelect }: TabButtonPr
   )
 }
 
+interface CheckboxProps {
+  id: string
+  label: string
+  checked: boolean
+  onChange?: (checked: boolean) => void
+}
+
+const SelectableInput = ({ id, checked, label, onChange }: CheckboxProps) => {
+  return (
+    <div className="flex items-center gap-3">
+      <Checkbox id={id} checked={checked} onCheckedChange={onChange} />
+      <Label htmlFor={id}>{label}</Label>
+    </div>
+  )
+}
+
+const KeySelector = ({ defaultValue, onChange }: { defaultValue: string; onChange?: (key: string) => void }) => {
+  return (
+    <Input
+      defaultValue={defaultValue}
+      type="text"
+      placeholder="Press a key..."
+      maxLength={1}
+      minLength={1}
+      onChange={(e) => {
+        const key = e.target.value
+        onChange?.(key)
+      }}
+    />
+  )
+}
+
+const buildAcceleratorString = (hotkeyConfig: HotkeyConfig): string => {
+  const parts: string[] = []
+  if (hotkeyConfig.ctrl) parts.push('Ctrl')
+  if (hotkeyConfig.shift) parts.push('Shift')
+  if (hotkeyConfig.alt) parts.push('Alt')
+  if (hotkeyConfig.meta) parts.push('Meta')
+  parts.push(hotkeyConfig.key)
+  return parts.join('+')
+}
+
+const parseAcceleratorString = (accelerator: string | undefined): HotkeyConfig => {
+  if (!accelerator) return defaultVisibilityHotkeyConfig
+
+  const parts = accelerator.split('+')
+  const key = parts.pop() || 'O'
+  return {
+    ctrl: parts.includes('Ctrl'),
+    shift: parts.includes('Shift'),
+    alt: parts.includes('Alt'),
+    meta: parts.includes('Meta'),
+    key,
+  }
+}
+
+interface KeyboardShortcutInputProps {
+  label: string
+  shortcutConfig: HotkeyConfig
+  setProperty: (property: keyof HotkeyConfig, value: boolean | string) => void
+}
+
+const KeyboardShortcutInput = ({ label, shortcutConfig, setProperty }: KeyboardShortcutInputProps) => {
+  const onValueChange = (property: keyof HotkeyConfig) => (value: boolean | string) => {
+    setProperty(property, value)
+  }
+  return (
+    <div className="w-full flex flex-row justify-between">
+      <p className="text-sm text-white/80">{label}</p>
+      <SelectableInput id="ctrl" label="ctrl" checked={shortcutConfig.ctrl} onChange={onValueChange('ctrl')} />
+      <SelectableInput id="shift" label="shift" checked={shortcutConfig.shift} onChange={onValueChange('shift')} />
+      <SelectableInput id="alt" label="alt" checked={shortcutConfig.alt} onChange={onValueChange('alt')} />
+      <KeySelector defaultValue={shortcutConfig.key} onChange={onValueChange('key')} />
+    </div>
+  )
+}
+
 const SettingsModal = ({ open, setOpen }: SettingsModalProps) => {
   const app = useConveyor('app')
   const [settingsLoaded, setSettingsLoaded] = useState(false)
   const [runAtStartup, setRunAtStartup] = useState(true)
-  const [useSmallOverlay, setUseSmallOverlay] = useState(false)
-  const [hotkeyConfig, setHotkeyConfig] = useState(defaultHotkeyConfig)
-  const [activeTab, setActiveTab] = useState<'app' | 'privacy'>('app')
+  const [disableOverlay, setDisableOverlay] = useState(false)
+  const [overlayVisibilityHotkeyConfig, setOverlayVisibilityHotkeyConfig] = useState(defaultVisibilityHotkeyConfig)
+  const [overlayDragHotkeyConfig, setOverlayDragHotkeyConfig] = useState(defaultDragHotkeyConfig)
+  const [activeTab, setActiveTab] = useState<TabValue>('app')
 
   useEffect(() => {
     if (!open) {
@@ -89,11 +181,14 @@ const SettingsModal = ({ open, setOpen }: SettingsModalProps) => {
   }, [open])
 
   useEffect(() => {
-    app.getSettings().then((settings) => {
+    app?.getSettings().then((settings) => {
       if (Object.entries(settings).length > 0) {
         setRunAtStartup(settings.runAtStartup ?? true)
-        setHotkeyConfig(settings.hotkeyConfig ?? defaultHotkeyConfig)
-        setUseSmallOverlay(settings.useSmallOverlay ?? false)
+        setOverlayVisibilityHotkeyConfig(
+          parseAcceleratorString(settings.overlayAccelerator) ?? defaultVisibilityHotkeyConfig
+        )
+        setOverlayDragHotkeyConfig(parseAcceleratorString(settings.overlayDragAccelerator) ?? defaultDragHotkeyConfig)
+        setDisableOverlay(settings.disableOverlay ?? false)
       }
       setSettingsLoaded(true)
     })
@@ -102,12 +197,13 @@ const SettingsModal = ({ open, setOpen }: SettingsModalProps) => {
   useEffect(() => {
     if (!settingsLoaded) return
 
-    app.setSettings({
+    app?.setSettings({
       runAtStartup,
-      hotkeyConfig,
-      useSmallOverlay,
+      overlayAccelerator: buildAcceleratorString(overlayVisibilityHotkeyConfig),
+      overlayDragAccelerator: buildAcceleratorString(overlayDragHotkeyConfig),
+      disableOverlay,
     })
-  }, [runAtStartup, hotkeyConfig, useSmallOverlay, settingsLoaded, app])
+  }, [runAtStartup, overlayVisibilityHotkeyConfig, overlayDragHotkeyConfig, disableOverlay, settingsLoaded, app])
 
   if (!open) {
     return null
@@ -150,6 +246,13 @@ const SettingsModal = ({ open, setOpen }: SettingsModalProps) => {
               isActive={activeTab === 'privacy'}
               onSelect={setActiveTab}
             />
+            <TabButton
+              value="streaming"
+              label="Streamer Mode"
+              icon={LuPodcast}
+              isActive={activeTab === 'streaming'}
+              onSelect={setActiveTab}
+            />
           </nav>
           <section className="flex-1 overflow-y-auto p-6">
             {activeTab === 'app' ? (
@@ -158,6 +261,26 @@ const SettingsModal = ({ open, setOpen }: SettingsModalProps) => {
                   <p className="text-sm text-white/80">Run Canopy at Windows startup</p>
                   <Toggle checked={runAtStartup} onChange={setRunAtStartup} />
                 </div>
+                <KeyboardShortcutInput
+                  label="Toggle Canopy Overlay"
+                  shortcutConfig={overlayVisibilityHotkeyConfig}
+                  setProperty={(property, value) =>
+                    setOverlayVisibilityHotkeyConfig((prev) => ({
+                      ...prev,
+                      [property]: value,
+                    }))
+                  }
+                />
+                <KeyboardShortcutInput
+                  label="Toggle Canopy Overlay drag mode"
+                  shortcutConfig={overlayDragHotkeyConfig}
+                  setProperty={(property, value) =>
+                    setOverlayDragHotkeyConfig((prev) => ({
+                      ...prev,
+                      [property]: value,
+                    }))
+                  }
+                />
                 <p className="self-end text-xs italic text-white/60">* Settings automatically update</p>
               </Content>
             ) : null}
@@ -171,11 +294,40 @@ const SettingsModal = ({ open, setOpen }: SettingsModalProps) => {
                     type="button"
                     className="rounded-full border border-white/20 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
                     onClick={() => {
-                      app.openPrivacySettings()
+                      app?.openPrivacySettings()
                     }}
                   >
                     Manage
                   </button>
+                </div>
+              </Content>
+            ) : null}
+            {activeTab === 'streaming' ? (
+              <Content title="Streamer Mode" subtitle="Protect your privacy while streaming or recording">
+                <div className="grid grid-cols-[48px_1fr] columns-[30px_80px] w-120 self-center flex-col items-start justify-between gap-4">
+                  <p className="col-span-2">
+                    <b>Streamer Mode</b> hides the on-screen overlay in favor of a browser source you can add to your
+                    streaming software.
+                    <br />
+                    <br />
+                    To set up, add a new browser source in your streaming software with the following settings:
+                  </p>
+                  <b>URL</b>
+                  <kbd className="break-all select-text">http://127.0.0.1:4820/overlay</kbd>
+
+                  <b>Width</b>
+                  <kbd className="break-all select-text">280px</kbd>
+                  <b>Height</b>
+                  <kbd className="break-all select-text">520px</kbd>
+                </div>
+                <div className="flex w-full items-center justify-between gap-4">
+                  <p className="text-sm text-white/80">Show the overlay when using the browser</p>
+                  <Toggle
+                    checked={!disableOverlay}
+                    onChange={(value) => {
+                      setDisableOverlay(!value)
+                    }}
+                  />
                 </div>
               </Content>
             ) : null}

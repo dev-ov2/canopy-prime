@@ -5,9 +5,9 @@ const useTokenReceived = (handler: (token: string) => void) => {
   const appApi = useConveyor('app')
 
   useEffect(() => {
-    const off = appApi.onTokenReceived(handler)
+    const off = appApi?.onTokenReceived(handler)
     return () => {
-      off()
+      off?.()
     }
   }, [appApi, handler])
 }

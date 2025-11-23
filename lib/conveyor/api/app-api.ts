@@ -1,5 +1,5 @@
 import { ConveyorApi } from '@/lib/preload/shared'
-import { AppSettings, IntervalResponse } from '@/lib/types'
+import { AppSettings, DataEnvelope, IntervalResponse } from '@/lib/types'
 
 export class AppApi extends ConveyorApi {
   version = () => this.invoke('version')
@@ -14,4 +14,6 @@ export class AppApi extends ConveyorApi {
   updateAvailable = (handler: () => void) => this.send('update-available', handler)
   updateDownloaded = (handler: () => void) => this.send('update-downloaded', handler)
   onTokenReceived = (handler: (token: string) => void) => this.send('token-received', handler)
+  onToggleDragMode = (handler: (dragAccelerator: string) => void) => this.send('toggle-drag-mode', handler)
+  publishOverlayPayload = (payload: DataEnvelope) => this.invoke('publish-overlay-payload', payload)
 }

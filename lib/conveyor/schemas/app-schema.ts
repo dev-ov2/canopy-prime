@@ -1,3 +1,4 @@
+import { DataType } from '@/lib/types'
 import { z } from 'zod'
 
 export const appIpcSchema = {
@@ -9,10 +10,9 @@ export const appIpcSchema = {
     args: z.tuple([]),
     return: z.object({
       runAtStartup: z.boolean().optional(),
-      hotkeyConfig: z
-        .object({ ctrl: z.boolean(), shift: z.boolean(), alt: z.boolean(), meta: z.boolean(), keyCode: z.number() })
-        .optional(),
-      useSmallOverlay: z.boolean().optional(),
+      overlayAccelerator: z.string().optional(),
+      overlayDragAccelerator: z.string().optional(),
+      disableOverlay: z.boolean().optional(),
     }),
   },
   'set-settings': {
@@ -20,10 +20,9 @@ export const appIpcSchema = {
       z
         .object({
           runAtStartup: z.boolean(),
-          hotkeyConfig: z
-            .object({ ctrl: z.boolean(), shift: z.boolean(), alt: z.boolean(), meta: z.boolean(), keyCode: z.number() })
-            .optional(),
-          useSmallOverlay: z.boolean().optional(),
+          overlayAccelerator: z.string().optional(),
+          overlayDragAccelerator: z.string().optional(),
+          disableOverlay: z.boolean().optional(),
         })
         .partial(),
     ]),
@@ -49,10 +48,19 @@ export const appIpcSchema = {
     args: z.tuple([]),
     handlerArgs: z.object({
       state: z.enum(['started', 'stopped']),
-      appId: z.string(),
-      source: z.string(),
-      name: z.string(),
+      appId: z.string().nullable(),
+      source: z.string().nullable(),
+      name: z.string().nullable(),
     }),
+    return: z.void(),
+  },
+  'publish-overlay-payload': {
+    args: z.tuple([
+      z.object({
+        type: z.enum(DataType),
+        data: z.any(),
+      }),
+    ]),
     return: z.void(),
   },
   'on-first-run': {
@@ -71,6 +79,11 @@ export const appIpcSchema = {
     return: z.void(),
   },
   'token-received': {
+    args: z.tuple([]),
+    handlerArgs: z.string(),
+    return: z.void(),
+  },
+  'toggle-drag-mode': {
     args: z.tuple([]),
     handlerArgs: z.string(),
     return: z.void(),

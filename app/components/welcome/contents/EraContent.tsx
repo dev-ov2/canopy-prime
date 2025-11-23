@@ -7,17 +7,18 @@ import { useConveyor } from '@/app/hooks/use-conveyor'
 import { useEffect, useState } from 'react'
 
 const EraContent = () => {
-  const { version } = useConveyor('app')
+  const app = useConveyor('app')
   const [appVersion, setAppVersion] = useState('')
 
   useEffect(() => {
     const fetchVersion = async () => {
-      const appVersion = await version()
+      if (!app) return
+
+      const appVersion = await app?.version()
       setAppVersion(appVersion)
     }
     fetchVersion()
-  }, [version])
-
+  }, [app])
   return (
     <div>
       <h2 className="flex items-center gap-4">

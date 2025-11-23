@@ -1,5 +1,3 @@
-import { registerAppHandlers } from '@/lib/conveyor/handlers/app-handler'
-import { registerWindowHandlers } from '@/lib/conveyor/handlers/window-handler'
 import appIcon from '@/resources/assets/icon2.png'
 import { overwolf } from '@overwolf/ow-electron'
 import { app, BrowserWindow, nativeImage, shell } from 'electron'
@@ -7,6 +5,7 @@ import { join } from 'path'
 import { Logger } from '../utils'
 import { SettingsRepository } from './db'
 import { ProcessSnapshot } from './process'
+import { buildIntervalResponse } from './process/helpers'
 import { registerResourcesProtocol } from './protocols'
 import { show } from './shared'
 
@@ -39,10 +38,6 @@ export function createAppWindow(settingsRepository: SettingsRepository): AppWind
       sandbox: false,
     },
   })
-
-  // Register IPC events for the main window.
-  registerWindowHandlers(mainWindow)
-  registerAppHandlers(app, settingsRepository)
 
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
@@ -82,22 +77,13 @@ export function createAppWindow(settingsRepository: SettingsRepository): AppWind
   }
 
   const setActiveProcess = (process: ProcessSnapshot | null) => {
+    const payload = buildIntervalResponse(process)
+
     if (process) {
       show(mainWindow)
-      mainWindow.webContents.send('game-state-update', {
-        state: 'started',
-        appId: process.meta?.appId,
-        source: process.meta?.source,
-        name: process.meta?.name,
-      })
-    } else if (!process) {
-      mainWindow.webContents.send('game-state-update', {
-        state: 'stopped',
-        appId: null,
-        source: null,
-        name: null,
-      })
     }
+
+    mainWindow.webContents.send('game-state-update', payload)
   }
 
   const appWindow: AppWindow = Object.assign(mainWindow, { setActiveProcess })
