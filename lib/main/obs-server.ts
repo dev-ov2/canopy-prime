@@ -12,6 +12,7 @@ const MIME_TYPES: Record<string, string> = {
   '.css': 'text/css',
   '.map': 'application/json',
   '.json': 'application/json',
+  '.html': 'text/html',
   '.png': 'image/png',
   '.svg': 'image/svg+xml',
   '.ico': 'image/x-icon',
@@ -153,8 +154,12 @@ export class ObsOverlayServer {
       return this.serveOverlay(res)
     }
 
-    if (pathname.startsWith('/app/')) {
+    if (pathname.startsWith('/app/') || pathname.startsWith('/assets/')) {
       return this.serveStatic(pathname, res)
+    }
+
+    if (pathname === '/favicon.ico') {
+      return this.serveFavicon(res)
     }
 
     res.writeHead(404, DEFAULT_HEADERS).end('Not Found')
@@ -194,5 +199,9 @@ export class ObsOverlayServer {
       Logger.error('Failed to serve overlay asset', error)
       res.writeHead(500, DEFAULT_HEADERS).end('Internal Server Error')
     }
+  }
+
+  private serveFavicon = (res: ServerResponse) => {
+    res.writeHead(204, { ...DEFAULT_HEADERS, 'Content-Type': 'image/x-icon' }).end()
   }
 }
