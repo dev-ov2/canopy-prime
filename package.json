@@ -1,7 +1,7 @@
 {
   "name": "@canopy/overwolf-electron",
   "productName": "Canopy",
-  "version": "2.0.4",
+  "version": "2.1.0",
   "description": "Complete tasks, earn points, and plant trees while playing your favorite games!",
   "license": "MIT",
   "author": {
@@ -27,7 +27,7 @@
     "build:linux": "run-s vite:build:app electron:build:linux",
     "ow:dev": "vite dev",
     "ow:build": "vite build",
-    "ow:build:win": "pnpm run ow:build && ow-electron-builder --c.extraMetadata.name=Canopy --publish=\"never\""
+    "ow:build:win": "pnpm run ow:build && ow-electron-builder --c.extraMetadata.name=Canopy"
   },
   "overwolf": {
     "packages": []
@@ -163,9 +163,10 @@
     ],
     "publish": [
       {
-        "provider": "generic",
-        "url": "https://electron-updates.overwolf.com/electron-updates/electron/hbdkmbbfediokpddpgbpeojalkhapldlnfandmim",
-        "channel": "latest"
+        "provider": "github",
+        "owner": "dev-ov2",
+        "repo": "canopy-prime",
+        "releaseType": "release"
       }
     ]
   }
