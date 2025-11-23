@@ -1,29 +1,36 @@
-import { useEffect } from 'react'
-import { isValidRequest } from '../utils'
 import { useConveyor } from '@/app/hooks/use-conveyor'
 import { Logger } from '@/lib/utils'
+import { useEffect } from 'react'
+import { isValidRequest } from '../utils'
 
 export enum RequestType {
   GAME_CONFIG_UPDATE = 'GAME_CONFIG_UPDATE_V2',
   CANOPY_STATE_UPDATE = 'CANOPY_STATE_UPDATE',
   USER_INFO = 'USER_INFO',
+  DATA_RECEIVED = 'DATA_RECEIVED',
   OPEN_EXTERNAL_LINK = 'open-external',
   OPEN_HOME = 'open-home',
 }
 
-const useReceiver = (gameId: number | undefined, setOpenCb?: () => void) => {
+interface UseReceiverProps {
+  gameId?: number | undefined
+  onDataReceived?: (data: any) => void
+  onOpenHome?: () => void
+}
+
+const useReceiver = ({ gameId, onDataReceived, onOpenHome }: UseReceiverProps) => {
   const app = useConveyor('app')
   useEffect(() => {
     const handleMessage = (event: any) => {
       if (isValidRequest(event)) {
         const requestType = event.data.type
         if (requestType === RequestType.OPEN_EXTERNAL_LINK) {
-          app.openExternalLink(event.data.url)
+          app?.openExternalLink(event.data.url)
           return
         }
 
         if (requestType === RequestType.OPEN_HOME) {
-          setOpenCb?.()
+          onOpenHome?.()
           return
         }
 
@@ -41,12 +48,12 @@ const useReceiver = (gameId: number | undefined, setOpenCb?: () => void) => {
               email = localPart + domain
             }
 
-            app.updateUserEmailHash(email)
+            app?.updateUserEmailHash(email)
           } else {
-            app.updateUserEmailHash('')
+            app?.updateUserEmailHash('')
           }
-        } else {
-          Logger.error('useReceiver', `Invalid request type: ${requestType}`)
+        } else if (requestType === RequestType.DATA_RECEIVED) {
+          onDataReceived?.(event.data?.data)
         }
       }
     }
@@ -55,7 +62,7 @@ const useReceiver = (gameId: number | undefined, setOpenCb?: () => void) => {
     return () => {
       window.removeEventListener('message', handleMessage)
     }
-  }, [app, gameId, setOpenCb])
+  }, [app, gameId, onDataReceived, onOpenHome])
 }
 
 export default useReceiver

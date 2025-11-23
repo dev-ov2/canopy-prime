@@ -1,8 +1,20 @@
 import { SettingsRepository } from '@/lib/main/db'
 import { handle } from '@/lib/main/shared'
-import { shell, type App } from 'electron'
+import { DataEnvelope } from '@/lib/types'
+import { globalShortcut, shell, type App } from 'electron'
 
-export const registerAppHandlers = (app: App, settingsRepository: SettingsRepository) => {
+type AppHandlerCallbacks = {
+  toggleOverlay?: () => void
+  toggleOverlayDrag?: (accelerator: string) => void
+  publishOverlayPayload?: (payload: DataEnvelope) => void
+  handleDisableOverlay?: (disable: boolean) => void
+}
+
+export const registerAppHandlers = (
+  app: App,
+  settingsRepository: SettingsRepository,
+  callbacks: AppHandlerCallbacks = {}
+) => {
   // App operations
   handle('version', () => app.getVersion())
   handle('get-settings', () => {
@@ -13,9 +25,19 @@ export const registerAppHandlers = (app: App, settingsRepository: SettingsReposi
     if (Object.entries(settings).length > 0) {
       settingsRepository.upsert('appSettings', JSON.stringify(settings))
     }
+    callbacks.handleDisableOverlay?.(settings.disableOverlay)
     app.setLoginItemSettings({
       openAtLogin: settings.runAtStartup,
     })
+    globalShortcut.unregisterAll()
+    if (settings.overlayAccelerator && callbacks.toggleOverlay) {
+      const callback = callbacks.toggleOverlay
+      globalShortcut.register(settings.overlayAccelerator, callback)
+    }
+    if (settings.overlayDragAccelerator && callbacks.toggleOverlayDrag) {
+      const callback = () => callbacks.toggleOverlayDrag!(settings.overlayDragAccelerator ?? 'ctrl+shift+D')
+      globalShortcut.register(settings.overlayDragAccelerator, callback)
+    }
   })
   handle('open-external-link', (url: string) => {
     shell.openExternal(url)
@@ -34,5 +56,9 @@ export const registerAppHandlers = (app: App, settingsRepository: SettingsReposi
   handle('restart-app', () => {
     app.relaunch()
     app.exit(0)
+  })
+
+  handle('publish-overlay-payload', (payload: DataEnvelope) => {
+    callbacks.publishOverlayPayload?.(payload)
   })
 }

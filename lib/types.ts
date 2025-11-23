@@ -3,12 +3,13 @@ export interface HotkeyConfig {
   shift: boolean
   alt: boolean
   meta: boolean
-  keyCode: number
+  key: string
 }
 export interface AppSettings {
   runAtStartup: boolean
-  hotkeyConfig: HotkeyConfig
-  useSmallOverlay: boolean
+  overlayAccelerator: string
+  overlayDragAccelerator: string
+  disableOverlay?: boolean
 }
 
 export interface StoreProps {
@@ -17,7 +18,23 @@ export interface StoreProps {
 }
 export interface IntervalResponse {
   state: 'started' | 'stopped'
-  appId: string
-  source: string
-  name: string
+  appId: string | null
+  source: string | null
+  name: string | null
+}
+
+export interface Statistic {
+  label: string
+  value: number | string
+  helptext: string
+}
+
+export enum DataType {
+  OVERLAY_STATISTICS = 'OVERLAY_STATISTICS',
+  INTERVAL_COUNTER_UPDATE = 'INTERVAL_COUNTER_UPDATE',
+}
+
+export interface DataEnvelope {
+  type: DataType
+  data: any
 }

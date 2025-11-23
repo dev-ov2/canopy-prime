@@ -62,13 +62,13 @@ const TitlebarControls = () => {
 }
 
 const TitlebarControlButton = ({ svgPath, label }: { svgPath: string; label: string }) => {
-  const { windowMinimize, windowMaximizeToggle, windowClose } = useConveyor('window')
+  const window = useConveyor('window')
 
   const handleAction = () => {
     const actions = {
-      minimize: windowMinimize,
-      maximize: windowMaximizeToggle,
-      close: windowClose,
+      minimize: window?.windowMinimize,
+      maximize: window?.windowMaximizeToggle,
+      close: window?.windowClose,
     }
     actions[label as keyof typeof actions]?.()
   }

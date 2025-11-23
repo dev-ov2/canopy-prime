@@ -1,8 +1,8 @@
-import { createContext, useContext, useEffect, useState } from 'react'
-import { Titlebar, TitlebarProps } from './Titlebar'
-import { TitlebarContextProvider } from './TitlebarContext'
-import type { ChannelReturn } from '@/lib/conveyor/schemas'
 import { useConveyor } from '@/app/hooks/use-conveyor'
+import type { ChannelReturn } from '@/lib/conveyor/schemas'
+import { createContext, useContext, useEffect, useState } from 'react'
+import { TitlebarProps } from './Titlebar'
+import { TitlebarContextProvider } from './TitlebarContext'
 
 type WindowInitProps = ChannelReturn<'window-init'>
 
@@ -26,15 +26,15 @@ export const WindowContextProvider = ({
   titlebar?: TitlebarProps
 }) => {
   const [initProps, setInitProps] = useState<WindowInitProps>()
-  const { windowInit } = useConveyor('window')
+  const window = useConveyor('window')
 
   useEffect(() => {
-    windowInit().then(setInitProps)
+    window?.windowInit().then(setInitProps)
 
     // Add class to parent element
     const parent = document.querySelector('.window-content')?.parentElement
     parent?.classList.add('window-frame')
-  }, [windowInit])
+  }, [window, window?.windowInit])
 
   return (
     <WindowContext.Provider value={{ titlebar, window: initProps }}>

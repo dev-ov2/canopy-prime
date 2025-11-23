@@ -82,13 +82,13 @@ const TitlebarMenuPopup = ({ menu }: { menu: TitlebarMenu }) => (
 
 const TitlebarMenuPopupItem = ({ item }: { item: TitlebarMenuItem }) => {
   const { setActiveMenuIndex } = useTitlebarContext()
-  const { invoke } = useConveyor('window')
+  const window = useConveyor('window')
 
   const handleAction = () => {
     if (typeof item.actionCallback === 'function') {
       item.actionCallback()
     } else if (item.action) {
-      invoke(item.action as any, ...(item.actionParams || []))
+      window?.invoke(item.action as any, ...(item.actionParams || []))
     }
     setActiveMenuIndex(null)
   }

@@ -2,13 +2,7 @@ import { useEffect, useState } from 'react'
 import { IS_DEV, isValidRequest, CORE_URL } from '../utils'
 import { Logger } from '@/lib/utils'
 
-const useInitialize = (
-  type: string,
-
-  iframeRef: React.RefObject<HTMLIFrameElement | null>,
-  game: number | undefined,
-  screen: string | undefined
-) => {
+const useInitialize = (type: string, iframeRef: React.RefObject<HTMLIFrameElement | null>) => {
   const [initialized, setInitialized] = useState<boolean>(false)
   const [iframeLoaded, setIframeLoaded] = useState<boolean>(false)
 
@@ -34,19 +28,20 @@ const useInitialize = (
       iframeRef.current.contentWindow.postMessage(
         {
           type: 'FROM_CORE',
-          data: { action: 'SYN', data: { gameId: game ?? -1, screen } },
+          data: { action: 'SYN', data: { data: { prime: true } } },
         },
         IS_DEV ? '*' : CORE_URL
       )
       Logger.info('useInitialize', 'FROM_CORE SYN dispatched, waiting for ACK...')
     }
-  }, [game, iframeLoaded, iframeRef, initialized, screen])
+  }, [iframeLoaded, iframeRef, initialized])
 
   useEffect(() => {
     const handleMessage = (event: any) => {
       if (isValidRequest(event)) {
         const requestType = event.data.type
         if (type === requestType) {
+          Logger.info('useInitialize', `Received ${type} from core iframe, initialization complete.`)
           setInitialized(true)
         }
       }

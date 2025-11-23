@@ -172,12 +172,12 @@ const Landing = ({ open, setOpen, hasUpdate }: LandingProps) => {
                     <Button
                       icon={<FaDiscord />}
                       onClick={() => {
-                        app.openExternalLink(DISCORD_URL)
+                        app?.openExternalLink(DISCORD_URL)
                       }}
                     />
                   }
                   onClick={() => {
-                    app.openExternalLink(DISCORD_URL)
+                    app?.openExternalLink(DISCORD_URL)
                   }}
                 />
                 <LandingCard
@@ -210,7 +210,7 @@ const Landing = ({ open, setOpen, hasUpdate }: LandingProps) => {
                     type="button"
                     className="rounded-full px-4 py-2 text-sm font-medium transition hover:bg-black/10"
                     onClick={() => {
-                      app.restartApp()
+                      app?.restartApp()
                     }}
                   >
                     Update and Relaunch

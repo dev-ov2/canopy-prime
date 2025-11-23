@@ -29,21 +29,18 @@ export enum DisplayType {
   SECONDARY = 1,
 }
 
-export const show = (window: BrowserWindow | null, displayType: DisplayType = DisplayType.SECONDARY) => {
+const getDisplayBounds = (displayType: DisplayType) => {
   const primaryDisplay = screen.getPrimaryDisplay()
-
-  let targetDisplay
   switch (displayType) {
     case DisplayType.PRIMARY:
-      targetDisplay = primaryDisplay
-      break
+      return primaryDisplay.bounds
     case DisplayType.SECONDARY:
-      targetDisplay = screen.getAllDisplays().find((d) => d.id !== primaryDisplay.id) || primaryDisplay
-      break
+      return (screen.getAllDisplays().find((d) => d.id !== primaryDisplay.id) || primaryDisplay).bounds
   }
+}
 
-  // Get the bounds of the target display
-  const { x, y, width, height } = targetDisplay.bounds
+export const show = (window: BrowserWindow | null, displayType: DisplayType = DisplayType.SECONDARY) => {
+  const { x, y, width, height } = getDisplayBounds(displayType)
 
   if (window) {
     const [windowWidth, windowHeight] = window.getSize()
@@ -59,5 +56,19 @@ export const show = (window: BrowserWindow | null, displayType: DisplayType = Di
     setTimeout(() => {
       window.setAlwaysOnTop(false)
     }, 100)
+  }
+}
+
+export const pin = (window: BrowserWindow | null, displayType: DisplayType = DisplayType.PRIMARY) => {
+  const { x, y, width } = getDisplayBounds(displayType)
+
+  const windowX = x + width - 280
+
+  const windowY = y
+
+  if (window) {
+    window.setPosition(windowX, windowY)
+    window.setAlwaysOnTop(true, 'screen-saver')
+    window.show()
   }
 }
